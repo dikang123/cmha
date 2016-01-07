@@ -1,0 +1,10 @@
+exit
+show chap innosql
+exit
+show chap
+show chap innosql
+show chap innosq
+show dbleader
+show dbleader innosql
+show dbleader innosq
+exit

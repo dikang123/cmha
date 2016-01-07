@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+set timeout 100
+set username [lindex $argv 0]
+set ip [lindex $argv 1]
+set password [lindex $argv 2]
+set file [lindex $argv 3]
+set dir [lindex $argv 4]
+spawn scp $file $username@$ip:$dir
+expect {
+	"*yes/no" { send "yes\r"; exp_continue}
+	"*password:" { send "$password\r" }
+}
+expect "100%" 
+expect eof
+#expect "*#*" { send "$cmd $dir;echo RSTATUS:$?\r" }
+#expect -re "\](\$|#) "
+#send "$cmd $dir;echo RSTATUS:$?\r"
+#expect -re "RSTATUS:(\[0-9\]+)" {exit $expect_out(1,string)}
+#expect -re "\](\$|#) "
+#send "exit\r"

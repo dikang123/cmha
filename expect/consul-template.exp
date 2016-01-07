@@ -1,0 +1,16 @@
+#! /usr/bin/expect -f
+set timeout 100
+set username [lindex $argv 0]
+set ip [lindex $argv 1]   
+set password [lindex $argv 2]
+set syslog [lindex $argv 3]
+set facility [lindex $argv 4]
+spawn ssh $username@$ip
+expect {
+    "yes/no" {send "yes\r"} 
+    "*assword:" {send "$password\r"}
+}
+expect "*#*" { send "consul-template -consul $ip:8500 -syslog=$syslog -syslog-facility=$facility -template \"/usr/local/cmha/consul-template.d/haproxy.ctmpl:/etc/haproxy/haproxy.cfg:service haproxy restart\"  &\n" }
+expect "*#*" { send "exit\r" }
+expect eof
+exit

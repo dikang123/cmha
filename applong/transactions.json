@@ -1,0 +1,10 @@
+{
+  "transactions": [
+    {
+      "sqls": [
+        "insert into test_tbl(name,created_at) values('test','2015-04-19 16:51:35')",
+        "update test_tbl set name='test1' where name='test' order by id desc limit 1"
+      ]
+    }
+  ]
+}

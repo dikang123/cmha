@@ -1,0 +1,21 @@
+#!/usr/bin/expect -f
+set timeout 100
+set username [lindex $argv 0]
+set ip [lindex $argv 1]
+set password [lindex $argv 2]
+set mysql_password [lindex $argv 3]
+set mysql_username [lindex $argv 4]
+spawn ssh $username@$ip
+expect {
+        "*yes/no" { send "yes\r"; exp_continue}
+        "*password:" { send "$password\r" }
+}
+#expect "*#*" {send "$cmd\r"}
+expect "*#*" { send "mysql -u$mysql_username -p$mysql_password\r" }
+expect "*mysql>*" { send "set global rpl_semi_sync_master_keepsyncrepl=1;\r" }
+expect "*mysql>*" { send "set global rpl_semi_sync_master_trysyncrepl=1;\r" }
+expect "*mysql>*" {send "exit\r" }
+expect "*#*" { send "sed -i \"s/loose-rpl_semi_sync_master_keepsyncrepl=0/loose-rpl_semi_sync_master_keepsyncrepl=1/\" /etc/my.cnf\r"}
+expect "*#*" { send "sed -i \"s/loose-rpl_semi_sync_master_trysyncrepl=0/loose-rpl_semi_sync_master_trysyncrepl=1/\" /etc/my.cnf\r"}
+expect "*#*" { send "exit\r" }
+expect eof

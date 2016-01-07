@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+set timeout 100
+set username [lindex $argv 0]
+set ip [lindex $argv 1]
+set password [lindex $argv 2]
+#set cmd [lindex $argv 3]
+spawn ssh $username@$ip
+expect {
+        "*yes/no" { send "yes\r"; exp_continue}
+        "*password:" { send "$password\r" }
+}
+#expect "*#*" {send "$cmd\r"}
+expect "*#*" { send "yum localinstall /usr/local/cmha/haproxy-1.5.2-2.el6.x86_64.rpm\r" }
+expect "*]:" { send "y\r" }
+expect "*#*" { send "yum localinstall /usr/local/cmha/keepalived-1.2.13-5.el6_6.x86_64.rpm\r" }
+expect "*]:" { send "y\r" }
+#expect "*]:" { send "rpm -qa |grep haproxy;echo RSTATUS:$? >/tmp/haproxy.log\r" }
+#expect "*]:" { send "rpm -qa |grep keepalived;echo RSTATUS:$? >>/tmp/haproxy.log\r" }
+expect "*#*" { send "exit\r"}
+expect eof

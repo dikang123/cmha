@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+set timeout 100
+set username [lindex $argv 0]
+set ip [lindex $argv 1]
+set password [lindex $argv 2]
+set master_host [lindex $argv 3]
+set master_user [lindex $argv 4]
+set master_password [lindex $argv 5]
+set master_file [lindex $argv 6]
+set master_pos [lindex $argv 7]
+set user [lindex $argv 8]
+set pass [lindex $argv 9]
+set master_port [lindex $argv 10]
+#set cmd [lindex $argv 3]
+spawn ssh $username@$ip
+expect {
+	"*yes/no" { send "yes\r"; exp_continue}
+	"*password:" { send "$password\r" }
+}
+#expect "*#*" {send "$cmd\r"}
+expect "*#*" { send "mysql -u$user -p$pass\r"}
+expect "*mysql>*" { send "change master to master_host='$master_host',master_user='$master_user',master_port=$master_port,master_password='$master_password',master_log_file='$master_file',master_log_pos=$master_pos;\r" }
+expect "*mysql>*" { send "start slave;\r" }
+expect "*mysql>*" {send "exit\r" }
+expect "*#*" { send "exit\r" }
+expect eof
