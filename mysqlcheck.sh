@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 0.6.0
+####version 1.1.2
 name=$1
 dbname=`tr '[A-Z]' '[a-z]' <<<"$name"`
 #basedir="/bsgchina/$dbname/MYBASE"

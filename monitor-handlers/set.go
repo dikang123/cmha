@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var kv *consulapi.KV
+
 func Set(ip, port, username, password string, issynchronous int) {
 	beego.Info("Set peer database repl_err_counter to 1 in CS")
 	servicename = beego.AppConfig.String("servicename")
@@ -21,7 +23,6 @@ func Set(ip, port, username, password string, issynchronous int) {
                 Token:      beego.AppConfig.String("token"),
         }
 	var healthpair []*consulapi.ServiceEntry
-        var kv *consulapi.KV
         var kvPair *consulapi.KVPair
         var client *consulapi.Client
         var health *consulapi.Health
@@ -38,7 +39,7 @@ func Set(ip, port, username, password string, issynchronous int) {
         }
         kv = client.KV()
 	health = client.Health()
-	var put string
+/*	var put string
         put = "1"
         kvvalue := []byte(put)
         kvotherhostname := consulapi.KVPair{
@@ -52,7 +53,8 @@ func Set(ip, port, username, password string, issynchronous int) {
                 beego.Info("Monitor Handler Completed")
                 return
         }
-        beego.Info("Set peer database repl_err_counter to 1 in CS successfully!")
+        beego.Info("Set peer database repl_err_counter to 1 in CS successfully!")*/
+	SetRepl_err_counter(other_hostname)
 	kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
         if err != nil {
 		beego.Error("Get and check current service leader from CS failed!", err)
@@ -140,6 +142,30 @@ func Set(ip, port, username, password string, issynchronous int) {
 	beego.Info("Set rpl_semi_sync_master_trysyncrepl=0 successfully!")
 	beego.Info("Switching local database to async replication!")
 	beego.Info("Monitor Handler Completed")
+}
+
+func SetRepl_err_counter(hostname string){
+        count := 0
+        var put string
+//        other_hostname := beego.AppConfig.String("otherhostname")
+        put = "1"
+        kvvalue := []byte(put)
+        kvotherhostname := consulapi.KVPair{
+                Key:   "monitor/" + hostname,
+                Value: kvvalue,
+        }
+   try:  _, err := kv.Put(&kvotherhostname, nil)
+        if err != nil {
+                beego.Error("Set peer database repl_err_counter to 1 in CS failed!", err)
+                if count ==2 {
+                        beego.Info("Monitor Handler Completed")
+                        return
+                }
+                count++
+                goto try
+        }
+        beego.Info("Set peer database repl_err_counter to 1 in CS successfully!")
+        beego.Info("MHA Handler Completed")
 }
 
 func checkio_thread(ip, port, username, password, addr string) {

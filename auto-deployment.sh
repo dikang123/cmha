@@ -1,5 +1,5 @@
 #!/bin/bash
-###version 0.6.0
+###version 1.1.2
 scp_error(){
 	if [ $? -ne 0 ]; then
         	echo "Scp $1 fail!"
@@ -443,21 +443,21 @@ do
                                 sed -i "s/${LINE}/auto_increment_offset       = ${offset}/" conf/my.cnf
                                 sed_error "$?" "Install Mysql" "conf/my.cnf" "auto_increment_offset"
                                 let "offset+=1"	
-			elif $(echo ${LINE} | grep -w "loose-rpl_reverse_recover_enabled" >/dev/null); then
-				sed -i "s/${LINE}/loose-rpl_reverse_recover_enabled = ${mysql_rpl_reverse_recover_enabled}/" conf/my.cnf
-				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_enabled"
-			elif $(echo ${LINE} | grep -w "loose-rpl_reverse_recover_mate_host" >/dev/null); then
-				sed -i "s/${LINE}/loose-rpl_reverse_recover_mate_host = ${mysql_rpl_reverse_recover_mate_host}/" conf/my.cnf
-				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_mate_host"
-			elif $(echo ${LINE} | grep -w "loose-rpl_reverse_recover_mate_port" >/dev/null); then
-				sed -i "s/${LINE}/loose-rpl_reverse_recover_mate_port = ${mysql_rpl_reverse_recover_mate_port}/" conf/my.cnf
-				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_mate_port"
-			elif $(echo ${LINE} | grep -w "loose-rpl_reverse_recover_mate_user" >/dev/null); then
-				sed -i "s/${LINE}/loose-rpl_reverse_recover_mate_user = ${mysql_rpl_reverse_recover_mate_user}/" conf/my.cnf
-				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_mate_user"
-			elif $(echo ${LINE}| grep -w "loose-rpl_reverse_recover_mate_passwd" >/dev/null); then
-				sed -i "s/${LINE}/loose-rpl_reverse_recover_mate_passwd = ${mysql_rpl_reverse_recover_mate_passwd}/" conf/my.cnf
-				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_mate_passwd"
+#			elif $(echo ${LINE} | grep -w "loose-rpl_reverse_recover_enabled" >/dev/null); then
+#				sed -i "s/${LINE}/loose-rpl_reverse_recover_enabled = ${mysql_rpl_reverse_recover_enabled}/" conf/my.cnf
+#				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_enabled"
+			elif $(echo ${LINE} | grep -w "ha_partner_host" >/dev/null); then
+				sed -i "s/${LINE}/ha_partner_host = ${mysql_rpl_reverse_recover_mate_host}/" conf/my.cnf
+				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_host"
+			elif $(echo ${LINE} | grep -w "ha_partner_port" >/dev/null); then
+				sed -i "s/${LINE}/ha_partner_port = ${mysql_rpl_reverse_recover_mate_port}/" conf/my.cnf
+				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_port"
+			elif $(echo ${LINE} | grep -w "ha_partner_user" >/dev/null); then
+				sed -i "s/${LINE}/ha_partner_user = ${mysql_rpl_reverse_recover_mate_user}/" conf/my.cnf
+				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_user"
+			elif $(echo ${LINE}| grep -w "ha_partner_password" >/dev/null); then
+				sed -i "s/${LINE}/ha_partner_password = ${mysql_rpl_reverse_recover_mate_passwd}/" conf/my.cnf
+				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_password"
 			fi 		
 		done < conf/my.cnf
 		expect expect/scp.exp ${username} ${ip} ${password} conf/my.cnf /etc/ >/dev/null 2>&1
@@ -695,7 +695,7 @@ do
 #					sed -i "s/${LINE}/router_id ${hostname}/" conf/keepalived.conf
 #					sed_error "$?" "Install Haproxy Keepalived CT" "conf/keepalived.conf" "router_id"
 				if $(echo ${LINE} | grep -w "script" >/dev/null); then
-					sed -i "s/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh 192.168.2.1\"/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh ${ip}\"/" conf/keepalived.conf
+					sed -i "s/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh 192.168.2.1\"/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh ${server1_ip} ${server2_ip} ${server3_ip} ${servicename}\"/" conf/keepalived.conf
 					sed_error "$?" "Install Haproxy Keepalived CT" "conf/keepalived.conf" "script"
 				 elif [ $j == "master" ] && $(echo ${LINE} | grep -w "state" >/dev/null); then
                                         sed -i "s/${LINE}/state MASTER/" conf/keepalived.conf
@@ -723,7 +723,7 @@ do
 			expect expect/haproxy.exp ${username} ${ip} ${password} >/dev/null 2>&1
 			expect expect/scp.exp ${username} ${ip} ${password} "conf/keepalived.conf" /etc/keepalived/ >/dev/null 2>&1
 			scp_error "${ip} Install haproxy: conf/keepalived.conf"
-			sed -i "s/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh ${ip}\"/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh 192.168.2.1\"/" conf/keepalived.conf
+			sed -i "s/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh ${server1_ip} ${server2_ip} ${server3_ip} ${servicename}\"/    script \"\/usr\/local\/cmha\/scripts\/keepalived.sh 192.168.2.1\"/" conf/keepalived.conf
 			sed_error "$?" "${ip} Install Haproxy Keepalived CT" "conf/keepalived.conf" "script"
 			expect expect/consul-template.exp ${username} ${ip} ${password} ${enable_rsyslog} ${rsyslog_facility} >/dev/null 2>&1
 			expect expect/expect.exp ${username} ${ip} ${password} "rpm -qa | grep haproxy" >/dev/null 2>&1
@@ -768,6 +768,15 @@ do
 		do 
 			local hostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
 			error "$hostname" "Configure Mha Handlers" "auto-deployment.ini" "$a-$j-ip-hostname"
+			if [ "$j" = "master" ]; then
+                                other=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
+#                               echo "aaaaa"$other_hostname
+                                error "$other" "Configure Mha Handlers" "auto-deployment.ini" "$a-slave-ip-hostname"
+                        else
+                                other=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
+#                               echo "bbbb"$other_hostname
+                                error "$other" "Configure Mha Handlers" "auto-deployment.ini" "$a-master-ip-hostname"
+                        fi
 			local ip=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $1}'`
 			error "$ip" "Configure Mha Handlers" "auto-deployment.ini" "$a-$j-ip-hostname"
 			local hostname_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $4}'`
@@ -791,6 +800,9 @@ do
 				if $(echo ${LINE} | grep -w "hostname" >/dev/null); then
 					sed -i "s/${LINE}/hostname = ${hostname}/" mha-handlers/conf/app.conf
 					sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "hostname"
+				elif $(echo ${LINE} | grep -w "otherhostname" >/dev/null); then
+                                        sed -i "s/${LINE}/otherhostname = ${other}/" mha-handlers/conf/app.conf
+                                        sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "otherhostname"
 				elif $(echo ${LINE} | grep -w "ip" >/dev/null); then
 					sed -i "s/${LINE}/ip = ${ip}/" mha-handlers/conf/app.conf
 					sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "ip"
@@ -812,9 +824,9 @@ do
 				elif $(echo ${LINE} | grep -w "servicename" >/dev/null); then
 					sed -i "s/${LINE}/servicename = ${servicename}/" mha-handlers/conf/app.conf
 					sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "servicename"
-				elif $(echo ${LINE} | grep -w "switch" >/dev/null); then
-					sed -i "s/${LINE}/switch = ${switch}/" mha-handlers/conf/app.conf
-					sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "switch"
+			#	elif $(echo ${LINE} | grep -w "switch" >/dev/null); then
+			#		sed -i "s/${LINE}/switch = ${switch}/" mha-handlers/conf/app.conf
+			#		sed_error "$?" "Configure Mha Handlers" "mha-handlers/conf/app.conf" "switch"
 				fi	
 			done < mha-handlers/conf/app.conf
 			scp_expect ${username} ${ip} ${hostname_password} mha-handlers /usr/local/cmha/ >/dev/null 2>&1
@@ -839,11 +851,11 @@ do
 			if [ "$j" = "master" ]; then
 				other_hostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
 #				echo "aaaaa"$other_hostname
-                        	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-master-username"
+                        	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-slave-ip-hostname"
 			else
 				other_hostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
 #				echo "bbbb"$other_hostname
-                        	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-master-username"
+                        	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-master-ip-hostname"
 			fi
 			local host_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $4}'`
 			error "$host_password" "Configure Monitor Handlers" "auto-deployment.ini" "$a-$j-ip-hostname"
@@ -951,7 +963,7 @@ do
 			error "$servicename" "Chap Register" "auto-deployment.ini" "servicename"
                         local ip=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/'$a'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $1}'`
 			error "$ip" "Chap Register" "auto-deployment.ini" "$a-ip-hostname"
-                        curl -X PUT http://${ip}:8500/v1/agent/service/register -d "{\"Name\":\"${servicename}\",\"Tags\":[\"$a\"],\"Check\":{\"Script\":\"/usr/local/cmha/scripts/keepalived.sh ${server1_ip}\",\"Interval\":\"10s\"}}" >/dev/null 2>&1
+                        curl -X PUT http://${ip}:8500/v1/agent/service/register -d "{\"Name\":\"${servicename}\",\"Tags\":[\"$a\"],\"Check\":{\"Script\":\"/usr/local/cmha/scripts/keepalived.sh ${server1_ip} ${server2_ip} ${server3_ip} ${servicename}\",\"Interval\":\"10s\"}}" >/dev/null 2>&1
 			if [ $? -ne 0 ]; then
 				echo "${ip} Chap register ${servicename} service fail!"
 				exit 118

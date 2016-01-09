@@ -1,9 +1,11 @@
 package main
 
 import (
-	"strings"
+	//"strings"
+	"strconv"
 	"time"
 	"github.com/astaxie/beego"
+	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -11,27 +13,35 @@ import (
 var service_ip []string
 var servicename string
 var hostname string
+var port string
+var username string
+var password string
+var kv *consulapi.KV
+
 
 func SessionAndChecks() {
 	beego.Info("MHA Handler Triggered")
 	ip := beego.AppConfig.String("ip")
-	Switch := beego.AppConfig.String("switch")
-	if strings.EqualFold(Switch, "off") {
-		beego.Info(ip +" switch="+Switch+",give up leader election!")
-		beego.Info("MHA Handler Completed")
-		return
-	} else if strings.EqualFold(Switch, "on") {
-		beego.Info(ip + " switch=" +Switch)
-		beego.Info("Begin leader election!")
-	} else {
-		beego.Info("Config file switch format error,switch="+Switch+",Should off or on!")
-		beego.Info("Give up leader election")
-		beego.Info("MHA Handler Completed")
-		return
-	}
+//	Switch := beego.AppConfig.String("switch")
+//	if strings.EqualFold(Switch, "off") {
+//		beego.Info(ip +" switch="+Switch+",give up leader election!")
+//		beego.Info("MHA Handler Completed")
+//		return
+//	} else if strings.EqualFold(Switch, "on") {
+//		beego.Info(ip + " switch=" +Switch)
+//		beego.Info("Begin leader election!")
+//	} else {
+//		beego.Info("Config file switch format error,switch="+Switch+",Should off or on!")
+//		beego.Info("Give up leader election")
+//		beego.Info("MHA Handler Completed")
+//		return
+//	}
 	service_ip = beego.AppConfig.Strings("service_ip")
 	servicename = beego.AppConfig.String("servicename")
 	hostname = beego.AppConfig.String("hostname")
+	port = beego.AppConfig.String("port")
+	username = beego.AppConfig.String("username")
+	password = beego.AppConfig.String("password")
 	config := &consulapi.Config{
 		Datacenter: beego.AppConfig.String("datacenter"),
 		Token:      beego.AppConfig.String("token"),
@@ -91,6 +101,33 @@ func SessionAndChecks() {
 		return
 	}
 	beego.Info("Leader does not exist!")
+/*	dsName := username + ":" + password + "@tcp(" + "localhost" + ":" + port + ")/"
+        db, err := sql.Open("mysql", dsName)
+        if err != nil {
+                beego.Error("Create connection object to local database failed!", err)
+                beego.Info("Give up leader election")
+                beego.Info("MHA Handler Completed")
+                return
+        }
+        beego.Info("Create connection object to local database successfully!")
+        defer db.Close()
+        err = db.Ping()
+        if err != nil {
+                beego.Error("Connected to local database failed!", err)
+                beego.Info("Give up leader election")
+                beego.Info("MHA Handler Completed")
+                return
+        }
+        beego.Info("Connected to local database successfully!")
+	_, err = db.Query("set global read_only=0")
+        if err != nil {
+ 	       beego.Error("Set local database Read/Write mode failed!", err)
+               beego.Info("Give up leader election")
+               beego.Info("MHA Handler Completed")
+               return
+        }
+        beego.Info("Set local database Read/Write mode successfully!")*/
+	SetRead_only(username,password,port,1)
 	//Health returns a handle to the health endpoints
 	health := client.Health()
 	//Checks is used to return the checks associated with a service
@@ -162,9 +199,6 @@ func SessionAndChecks() {
 			return
 		} else {
 			beego.Info("Status is not critical")
-			port := beego.AppConfig.String("port")
-			username := beego.AppConfig.String("username")
-			password := beego.AppConfig.String("password")
 			slave(ip, port, username, password)
 		}
 	}
@@ -175,7 +209,6 @@ func SetConn(ip, port, username, password string) {
 		Token:      beego.AppConfig.String("token"),
 	}
 	var client *consulapi.Client
-	var kv *consulapi.KV
 	var err error
 	var sessionvalue string
 	for i, _ := range service_ip {
@@ -236,11 +269,84 @@ func SetConn(ip, port, username, password string) {
 	beego.Info("Send service leader request to CS successfully!")
 	if !ok {
 		time.Sleep(5 * time.Second)
-		beego.Warn("Becoming service leader failed! Connection string is " + ip + " " + port)
-                beego.Info("MHA Handler Completed")
-		return
+		beego.Info("Becoming service leader failed! Connection string is " + ip + " " + port)
+		SetRead_only(username,password,port,1)
+                beego.Info("Monitor Handler Completed")
+                        return
 	} else {
 		beego.Info("Becoming service leader successfully! Connection string is " + ip + " " + port)
-                beego.Info("MHA Handler Completed")
+	//	var put string
+		other_hostname := beego.AppConfig.String("otherhostname")
+		SetRepl_err_counter(other_hostname)
+        /*        put = "1"
+                kvvalue := []byte(put)
+                kvotherhostname := consulapi.KVPair{
+      	        	Key:   "monitor/" + other_hostname,
+                        Value: kvvalue,
+                }
+                _, err = kv.Put(&kvotherhostname, nil)
+                if err != nil {
+                	beego.Error("Set peer database repl_err_counter to 1 in CS failed!", err)
+                        beego.Info("Monitor Handler Completed")
+                        return
+                }
+                beego.Info("Set peer database repl_err_counter to 1 in CS successfully!")
+                beego.Info("MHA Handler Completed")*/
 	}
+}
+
+func SetRepl_err_counter(hostname string){
+	count := 0
+	var put string
+//        other_hostname := beego.AppConfig.String("otherhostname")
+        put = "1"
+        kvvalue := []byte(put)
+      	kvotherhostname := consulapi.KVPair{
+        	Key:   "monitor/" + hostname,
+                Value: kvvalue,
+        }
+   try:  _, err := kv.Put(&kvotherhostname, nil)
+        if err != nil {
+         	beego.Error("Set peer database repl_err_counter to 1 in CS failed!", err)
+		if count ==2 {
+			beego.Info("Monitor Handler Completed")
+			return
+		}
+		count++
+                goto try
+	}
+        beego.Info("Set peer database repl_err_counter to 1 in CS successfully!")
+        beego.Info("MHA Handler Completed")
+}
+
+func SetRead_only(username,password,port string,value int){
+	dsName := username + ":" + password + "@tcp(" + "localhost" + ":" + port + ")/"
+        db, err := sql.Open("mysql", dsName)
+        if err != nil {
+                beego.Error("Create connection object to local database failed!", err)
+                beego.Info("Give up leader election")
+                beego.Info("MHA Handler Completed")
+                return
+        }
+        beego.Info("Create connection object to local database successfully!")
+        defer db.Close()
+        err = db.Ping()
+        if err != nil {
+                beego.Error("Connected to local database failed!", err)
+                beego.Info("Give up leader election")
+                beego.Info("MHA Handler Completed")
+                return
+        }
+        beego.Info("Connected to local database successfully!")
+	read_only := "set global read_only=" + strconv.Itoa(value)
+        _, err = db.Query(read_only)
+        if err != nil {
+               	beego.Error("Set local database Read_only mode failed!", err)
+		beego.Info("Local database downgrade failed!")
+               	beego.Info("Give up leader election")
+               	beego.Info("MHA Handler Completed")
+               	return
+        }
+        beego.Info("Set local database Read_only mode successfully!")
+	beego.Info("Local database downgrade successfully!")
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 0.6.0
+####version 1.1.2
 config_dir="/usr/local/cmha/consul.d"
 configure_file="${config_dir}/config.json"
 bin_file="/usr/local/bin/consul"

@@ -1,4 +1,3 @@
-exit
 show chap innosql
 exit
 show chap

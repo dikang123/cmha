@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 0.6.0
+####version 1.1.2
 deployment_file="auto-deployment.ini"
 if [ ! -f ${deployment_file} ]; then
 	echo "Error: auto deployment Profiles not exist,please configuration"	
@@ -230,11 +230,15 @@ mysql(){
 	echo "loose-rpl_semi_sync_master_keepsyncrepl=0" >>conf/my.cnf
 	echo "loose-rpl_semi_sync_master_timeout = 10" >>conf/my.cnf
 	echo "loose-rpl_semi_sync_master_trysyncrepl=0" >>conf/my.cnf
-	echo "loose-rpl_reverse_recover_enabled = ON" >>conf/my.cnf 
-	echo "loose-rpl_reverse_recover_mate_host=192.168.2.96" >>conf/my.cnf
-	echo "loose-rpl_reverse_recover_mate_port = 3306" >>conf/my.cnf
-	echo "loose-rpl_reverse_recover_mate_user = repl" >>conf/my.cnf
-	echo "loose-rpl_reverse_recover_mate_passwd = 111111" >>conf/my.cnf 
+#	echo "loose-rpl_reverse_recover_enabled = ON" >>conf/my.cnf 
+#	echo "loose-rpl_reverse_recover_mate_host=192.168.2.96" >>conf/my.cnf
+#	echo "loose-rpl_reverse_recover_mate_port = 3306" >>conf/my.cnf
+#	echo "loose-rpl_reverse_recover_mate_user = repl" >>conf/my.cnf
+#	echo "loose-rpl_reverse_recover_mate_passwd = 111111" >>conf/my.cnf 
+	echo "ha_partner_host = 192.168.2.96" >>conf/my.cnf
+	echo "ha_partner_password = 111111" >>conf/my.cnf
+	echo "ha_partner_port = 3306" >>conf/my.cnf
+	echo "ha_partner_user = repl" >>conf/my.cnf
 	echo "relay_log_info_repository = TABLE # slave SQL thread crash safe" >>conf/my.cnf 
 	echo "master_info_repository = FILE" >>conf/my.cnf 
 	echo "relay_log_recovery = ON" >>conf/my.cnf
@@ -269,6 +273,7 @@ mha_handlers_conf(){
 	echo "runmode = dev" >>mha-handlers/conf/app.conf
 	echo "loglevel = 7" >>mha-handlers/conf/app.conf
 	echo "hostname = cmha-node1" >>mha-handlers/conf/app.conf
+	echo "otherhostname = cmha-node2" >>mha-handlers/conf/app.conf 
 	echo "ip = 192.168.2.95" >>mha-handlers/conf/app.conf
 	echo "port = 3306" >>mha-handlers/conf/app.conf
 	echo "username = check" >>mha-handlers/conf/app.conf
@@ -279,7 +284,7 @@ mha_handlers_conf(){
 	echo "service_port = 8500" >>mha-handlers/conf/app.conf
 	echo "servicename = mysql" >>mha-handlers/conf/app.conf
 	echo "format = hap" >>mha-handlers/conf/app.conf
-	echo "switch = on" >>mha-handlers/conf/app.conf
+#	echo "switch = on" >>mha-handlers/conf/app.conf
 	echo "cmha mha-handlers template file configuration success!"
 }
 

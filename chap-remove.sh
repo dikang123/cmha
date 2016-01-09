@@ -1,12 +1,12 @@
 #!/bin/bash
-####version 0.6.0
-rm -fr /tmp/consul/
+####version 1.1.2
+#rm -fr /tmp/consul/
 pkill consul
-rm -fr /etc/consul.d/
-rm -fr /usr/local/bin/consul
-rm -fr /usr/local/bin/consul-template
+#rm -fr /etc/consul.d/
+#rm -fr /usr/local/bin/consul
+#rm -fr /usr/local/bin/consul-template
 rm -fr /usr/local/cmha/
-rm -fr /etc/consul-template.d/
+#rm -fr /etc/consul-template.d/
 rm -fr /etc/haproxy/
 rm -fr /etc/keepalived/
 rpm -e haproxy-1.5.2-2.el6.x86_64
