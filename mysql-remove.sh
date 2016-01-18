@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 1.1.2
+####version 1.1.4
 #rm -fr /tmp/consul/
 basedir=`awk -F '=' '/\[cmha_agent1\]/{a=1}a==1&&$1~/mysql-master-basedir/{print $2;exit}' auto-deployment.ini`
 datadir=`awk -F '=' '/\[cmha_agent1\]/{a=1}a==1&&$1~/mysql-master-datadir/{print $2;exit}' auto-deployment.ini`

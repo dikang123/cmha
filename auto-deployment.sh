@@ -1,5 +1,5 @@
 #!/bin/bash
-###version 1.1.2
+###version 1.1.4
 scp_error(){
 	if [ $? -ne 0 ]; then
         	echo "Scp $1 fail!"
@@ -332,7 +332,7 @@ do
 
                 		fi
 			done < conf/config.json
-			expect expect/expect.exp ${username} ${ip} ${password} "mkdir" "/usr/local/cmha/consul.d/" >/dev/null 2>&1
+			expect expect/expect.exp ${username} ${ip} ${password} "mkdir -p" "/usr/local/cmha/consul.d/" >/dev/null 2>&1
         		if [ $? -ne 0 ]; then
                 		echo "${ip} mkdir /usr/local/cmha/consul.d/ failure"
                 		exit 146
@@ -378,16 +378,16 @@ do
 		error "$username" "Install Mysql" "auto-deployment.ini" "mysql-$j-ip-hostname"
 		local mysql_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-port/{print $2;exit}' auto-deployment.ini`
 		error "$mysql_port" "Install Mysql" "auto-deployment.ini" "mysql-$j-port"
-		local mysql_rpl_reverse_recover_enabled=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_enabled/{print $2;exit}' auto-deployment.ini`
-		error "$mysql_rpl_reverse_recover_enabled" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_enabled"
-		local mysql_rpl_reverse_recover_mate_host=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_mate_host/{print $2;exit}' auto-deployment.ini`
-		error "$mysql_rpl_reverse_recover_mate_host" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_mate_host"
-		local mysql_rpl_reverse_recover_mate_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_mate_port/{print $2;exit}' auto-deployment.ini`
-		error "$mysql_rpl_reverse_recover_mate_port" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_mate_port"
-		local mysql_rpl_reverse_recover_mate_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_mate_user/{print $2;exit}' auto-deployment.ini`
-		error "$mysql_rpl_reverse_recover_mate_user" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_mate_user"
-		local mysql_rpl_reverse_recover_mate_passwd=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_mate_passwd/{print $2;exit}' auto-deployment.ini`
-		error "$mysql_rpl_reverse_recover_mate_passwd" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_mate_passwd"
+#		local mysql_rpl_reverse_recover_enabled=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-rpl_reverse_recover_enabled/{print $2;exit}' auto-deployment.ini`
+#		error "$mysql_rpl_reverse_recover_enabled" "Install Mysql" "auto-deployment.ini" "mysql-$j-rpl_reverse_recover_enabled"
+		local mysql_ha_partner_host=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-ha_partner_host/{print $2;exit}' auto-deployment.ini`
+		error "$mysql_ha_partner_host" "Install Mysql" "auto-deployment.ini" "mysql-$j-ha_partner_host"
+		local mysql_ha_partner_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-ha_partner_port/{print $2;exit}' auto-deployment.ini`
+		error "$mysql_ha_partner_port" "Install Mysql" "auto-deployment.ini" "mysql-$j-ha_partner_port"
+		local mysql_ha_partner_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-ha_partner_user/{print $2;exit}' auto-deployment.ini`
+		error "$mysql_ha_partner_user" "Install Mysql" "auto-deployment.ini" "mysql-$j-ha_partner_user"
+		local mysql_ha_partner_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-ha_partner_password/{print $2;exit}' auto-deployment.ini`
+		error "$mysql_ha_partner_password" "Install Mysql" "auto-deployment.ini" "mysql-$j-ha_partner_password"
 		local mysql_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-password/{print $2;exit}' auto-deployment.ini`
 		error "$mysql_password" "Install Mysql" "auto-deployment.ini" "mysql-$j-password"
 		local mysql_username=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-'$j'-username/{print $2;exit}' auto-deployment.ini`
@@ -447,24 +447,24 @@ do
 #				sed -i "s/${LINE}/loose-rpl_reverse_recover_enabled = ${mysql_rpl_reverse_recover_enabled}/" conf/my.cnf
 #				sed_error "$?" "Install Mysql" "conf/my.cnf" "loose-rpl_reverse_recover_enabled"
 			elif $(echo ${LINE} | grep -w "ha_partner_host" >/dev/null); then
-				sed -i "s/${LINE}/ha_partner_host = ${mysql_rpl_reverse_recover_mate_host}/" conf/my.cnf
+				sed -i "s/${LINE}/ha_partner_host = ${mysql_ha_partner_host}/" conf/my.cnf
 				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_host"
 			elif $(echo ${LINE} | grep -w "ha_partner_port" >/dev/null); then
-				sed -i "s/${LINE}/ha_partner_port = ${mysql_rpl_reverse_recover_mate_port}/" conf/my.cnf
+				sed -i "s/${LINE}/ha_partner_port = ${mysql_ha_partner_port}/" conf/my.cnf
 				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_port"
 			elif $(echo ${LINE} | grep -w "ha_partner_user" >/dev/null); then
-				sed -i "s/${LINE}/ha_partner_user = ${mysql_rpl_reverse_recover_mate_user}/" conf/my.cnf
+				sed -i "s/${LINE}/ha_partner_user = ${mysql_ha_partner_user}/" conf/my.cnf
 				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_user"
 			elif $(echo ${LINE}| grep -w "ha_partner_password" >/dev/null); then
-				sed -i "s/${LINE}/ha_partner_password = ${mysql_rpl_reverse_recover_mate_passwd}/" conf/my.cnf
+				sed -i "s/${LINE}/ha_partner_password = ${mysql_ha_partner_password}/" conf/my.cnf
 				sed_error "$?" "Install Mysql" "conf/my.cnf" "ha_partner_password"
 			fi 		
 		done < conf/my.cnf
 		expect expect/scp.exp ${username} ${ip} ${password} conf/my.cnf /etc/ >/dev/null 2>&1
 		scp_error "${ip} Install mysql: conf/my.cnf"
 		echo "${ip} mysql configure success"
-		expect expect/mysql-install-plugin.exp ${username} ${ip} ${password} ${mysql_password} ${mysql_username} ${mysql_rpl_reverse_recover_mate_host} ${mysql_rpl_reverse_recover_mate_passwd} ${mysql_rpl_reverse_recover_mate_user} ${hostname} ${cmha_check_username} ${cmha_check_password} ${basedir} ${datadir}>/dev/null 2>&1
-		echo ${username} ${ip} ${password} ${mysql_password} ${mysql_username} ${mysql_rpl_reverse_recover_mate_host} ${mysql_rpl_reverse_recover_mate_passwd} ${mysql_rpl_reverse_recover_mate_user} ${hostname} ${cmha_check_username} ${cmha_check_password} ${basedir} ${datadir}
+		expect expect/mysql-install-plugin.exp ${username} ${ip} ${password} ${mysql_password} ${mysql_username} ${mysql_ha_partner_host} ${mysql_ha_partner_password} ${mysql_ha_partner_user} ${hostname} ${cmha_check_username} ${cmha_check_password} ${basedir} ${datadir}>/dev/null 2>&1
+		echo ${username} ${ip} ${password} ${mysql_password} ${mysql_username} ${mysql_ha_partner_host} ${mysql_ha_partner_password} ${mysql_ha_partner_user} ${hostname} ${cmha_check_username} ${cmha_check_password} ${basedir} ${datadir}
 		expect expect/consul.exp ${username} ${ip} ${password} "/usr/local/cmha/mysql/bin/mysql -u${mysql_username} -p${mysql_password} -h${hostname} -e \"show status\"" >/dev/null 2>&1
 		if [ $? -ne 0 ]; then
 			echo "${ip} install mysql fail!"
@@ -503,12 +503,12 @@ do
 		if [ $j == "master" ]; then
 			local slave_host=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/mysql-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $1}'`
 			error "$slave_host" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-ip-hostname"
-			local slave_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-rpl_reverse_recover_mate_user/{print $2;exit}' auto-deployment.ini`
-			error "$slave_user" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-rpl_reverse_recover_mate_user"
-			local slave_pass=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-rpl_reverse_recover_mate_passwd/{print $2;exit}' auto-deployment.ini`
-			error "$slave_pass" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-rpl_reverse_recover_mate_passwd"
-			local slave_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-rpl_reverse_recover_mate_port/{print $2;exit}' auto-deployment.ini`
-			error "$slave_port" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-rpl_reverse_recover_mate_port"
+			local slave_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-ha_partner_user/{print $2;exit}' auto-deployment.ini`
+			error "$slave_user" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-ha_partner_user"
+			local slave_pass=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-ha_partner_password/{print $2;exit}' auto-deployment.ini`
+			error "$slave_pass" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-ha_partner_password"
+			local slave_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-ha_partner_port/{print $2;exit}' auto-deployment.ini`
+			error "$slave_port" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-ha_partner_port"
 			local slave_username=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $3}'`
 			error "$slave_username" "Master Slave Relationship" "auto-deployment.ini" "mysql-slave-ip-hostname"
 			local slave_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $4}'`
@@ -542,12 +542,12 @@ do
 		elif [ $j == "slave" ]; then	
 			local master_host=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/mysql-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $1}'`
 			error "$master_host" "Maste Slave Relationship" "auto-deployment.ini" "mysql-master-ip-hostname"
-                        local master_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-rpl_reverse_recover_mate_user/{print $2;exit}' auto-deployment.ini`
-			error "$master_user" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-rpl_reverse_recover_mate_user"
-			local master_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-rpl_reverse_recover_mate_port/{print $2;exit}' auto-deployment.ini`
-			error "$master_port" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-rpl_reverse_recover_mate_port"
-                        local master_pass=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-rpl_reverse_recover_mate_passwd/{print $2;exit}' auto-deployment.ini`
-			error "$master_pass" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-rpl_reverse_recover_mate_passwd"
+                        local master_user=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-ha_partner_user/{print $2;exit}' auto-deployment.ini`
+			error "$master_user" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-ha_partner_user"
+			local master_port=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-ha_partner_port/{print $2;exit}' auto-deployment.ini`
+			error "$master_port" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-ha_partner_port"
+                        local master_pass=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-ha_partner_password/{print $2;exit}' auto-deployment.ini`
+			error "$master_pass" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-ha_partner_password"
                         local master_username=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $3}'`
 			error "$master_username" "Master Slave Relationship" "auto-deployment.ini" "mysql-master-ip-hostname"
                         local master_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/mysql-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $4}'`
@@ -850,12 +850,14 @@ do
 			error "$username" "Configure Monitor Handlers" "auto-deployment.ini" "$a-$j-username"
 			if [ "$j" = "master" ]; then
 				other_hostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-slave-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
-#				echo "aaaaa"$other_hostname
                         	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-slave-ip-hostname"
+				localhostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
+				error "$localhostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-$j-ip-hostname" 
 			else
 				other_hostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-master-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
-#				echo "bbbb"$other_hostname
                         	error "$other_hostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-master-ip-hostname"
+				localhostname=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $2}'`
+				error "$localhostname" "Configure Monitor Handlers" "auto-deployment.ini" "$a-$j-ip-hostname"
 			fi
 			local host_password=`awk -F '=' '/\[cmha_agent'$i'\]/{a=1}a==1&&\$1~/'$a'-'$j'-ip-hostname/{print $2;exit}' auto-deployment.ini |awk -F ',' '{print $4}'`
 			error "$host_password" "Configure Monitor Handlers" "auto-deployment.ini" "$a-$j-ip-hostname"
@@ -880,6 +882,9 @@ do
 				elif $(echo ${LINE} | grep -w "username" >/dev/null); then
 					sed -i "s/${LINE}/username = ${check_username}/" monitor-handlers/conf/app.conf
 					sed_error "$?" "Configure Monitor Handlers" "monitor-handlers/conf/app.conf" "check_username"
+				elif $(echo ${LINE} | grep -w "hostname" >/dev/null); then
+                                        sed -i "s/${LINE}/hostname = ${localhostname}/" monitor-handlers/conf/app.conf
+                                        sed_error "$?" "Configure Monitor Handlers" "monitor-handlers/conf/app.conf" "hostname"
 				elif $(echo ${LINE} | grep -w "otherhostname" >/dev/null); then
                                         sed -i "s/${LINE}/otherhostname = ${other_hostname}/" monitor-handlers/conf/app.conf
                                         sed_error "$?" "Configure Monitor Handlers" "monitor-handlers/conf/app.conf" "otherhostname"

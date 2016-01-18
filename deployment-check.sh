@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 1.1.2
+####version 1.1.4
 deployment_file="auto-deployment.ini"
 if [ ! -f ${deployment_file} ]; then
 	echo "Error: auto deployment Profiles not exist,please configuration"	
@@ -297,6 +297,7 @@ monitor_handlers_conf(){
         echo "username = check" >>monitor-handlers/conf/app.conf
         echo "password = check" >>monitor-handlers/conf/app.conf
         echo "datacenter = dc1" >>monitor-handlers/conf/app.conf
+	echo "hostname=cmha-node1" >>monitor-handlers/conf/app.conf
 	echo "otherhostname=cmha-node2" >>monitor-handlers/conf/app.conf
         echo "token =" >>monitor-handlers/conf/app.conf
 	echo "service_ip = 192.168.2.96;192.168.2.97;192.168.2.98" >>monitor-handlers/conf/app.conf

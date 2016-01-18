@@ -1,9 +1,10 @@
-show chap innosql
-exit
 show chap
 show chap innosql
 show chap innosq
 show dbleader
 show dbleader innosql
 show dbleader innosq
+exit
+set repl_err_counter rhel64-mysql1
+set repl_err_counter rhel64-mysql2
 exit

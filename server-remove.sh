@@ -1,5 +1,5 @@
 #!/bin/bash
-###version 1.1.2
+###version 1.1.4
 #rm -fr /tmp/consul/
 pkill consul
 #rm -fr /etc/consul.d/

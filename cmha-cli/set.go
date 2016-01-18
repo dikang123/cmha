@@ -148,7 +148,7 @@ func Setmonitorkv(args ...string) error {
 		var put string
 		put = "0"
 		kvvalue := []byte(put)
-		fmt.Println(kvvalue)
+//		fmt.Println(kvvalue)
 		kvotherhostname := consulapi.KVPair{
 			Key:   "monitor/" + args[0],
 			Value: kvvalue,

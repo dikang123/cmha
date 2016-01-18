@@ -1,5 +1,5 @@
 #!/bin/bash
-####version 1.1.2
+####version 1.1.4
 CONSUL_IP1=$1
 CONSUL_IP2=$2
 CONSUL_IP3=$3
