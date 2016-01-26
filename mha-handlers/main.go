@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-//	"github.com/astaxie/beego"
+	//	"github.com/astaxie/beego"
 	"os"
-//	"time"
+	//	"time"
 	"log"
 )
 
 var logfile *os.File
 var logger *log.Logger
+
 func init() {
 	var err error
 	logfile, err = os.OpenFile("logs/mha-handlers.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0)
@@ -20,12 +21,12 @@ func init() {
 }
 
 func main() {
-	defer logfile.Close()	
+	defer logfile.Close()
 	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.Lshortfile)
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-			fmt.Println("version 1.1.4")
+			fmt.Println("version 1.1.5")
 			return
 		} else {
 			return
