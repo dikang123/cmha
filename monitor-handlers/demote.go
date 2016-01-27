@@ -86,32 +86,36 @@ func CheckService() {
 	var healthpair []*consulapi.ServiceEntry
 	var health *consulapi.Health
 	var err error
+	c := len(service_ip)
 	for i, _ := range service_ip {
 		config.Address = service_ip[i] + ":" + beego.AppConfig.String("service_port")
 		client, err = consulapi.NewClient(config)
 		if err != nil {
-			logger.Println("[E] Create consul-api client failed!", err)
+			c--
+			logger.Println("[E] Create consul-api client failed! CS ip = "+service_ip[i], err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
-			logger.Println("[I] Give up switching to async replication!")
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_async_repl
-			UploadLog(logkey, logvalue)
-			return
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+			continue
 		}
-		logger.Println("[I] Create consul-api client successfully!")
+		logger.Println("[I] Create consul-api client successfully! CS ip = " + service_ip[i])
 		timestamp := time.Now().Unix()
 		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
 		health = client.Health()
 		healthpair, _, err = health.Service(servicename, tag, false, nil)
 		if err != nil {
-			logger.Println("[E] Get peer service "+servicename+" health status from CS failed!", err)
+			c--
+			logger.Println("[E] Get peer service "+servicename+" health status from CS failed! CS ip = "+service_ip[i], err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + peer_service_health_failed + "{{" + servicename + "{{" + fmt.Sprintf("%s", err)
-			logger.Println("[I] Give up switching to async replication!")
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_async_repl
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + peer_service_health_failed + "{{" + servicename + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 			continue
 		}
 		break
+	}
+	if c == 0 {
+		logger.Println("[I] Give up switching to async replication!")
+		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_async_repl
+		UploadLog(logkey, logvalue)
+		return
 	}
 	logger.Println("[I] Get peer service " + servicename + " health status from CS successfully!")
 	timestamp = time.Now().Unix()
@@ -222,31 +226,28 @@ func CheckService() {
 						timestamp := time.Now().Unix()
 						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 						continue
-						//logger.Println("[I] Give up leader election")
-						//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-						//UploadLog(logkey, logvalue)
-						//return
 					}
 					logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 					timestamp := time.Now().Unix()
 					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-					//KV is used to return a handle to the K/V apis
-					//	kv = client.KV()
-					//Get is used to lookup a single key
+					ct := 0
+				tr:
 					_, err = kv.Put(&kvotherhostname, nil)
 					if err != nil {
 						count--
 						logger.Println("[E] Set peer database repl_err_counter to 1 in CS failed! CS ip = "+service_ip[i], err)
 						timestamp := time.Now().Unix()
 						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
-						continue
+						if ct == 2 {
+							continue
+						} else {
+							ct++
+							goto tr
+						}
 					}
 					break
 				}
 				if count == 0 {
-					//logger.Println("[I] Give up leader election")
-					//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-					//UploadLog(logkey, logvalue)
 					UploadLog(logkey, logvalue)
 					os.Exit(1)
 				}
@@ -254,23 +255,7 @@ func CheckService() {
 				cnt++
 				goto try
 			}
-			/*if count == 2 {
-				UploadLog(logkey, logvalue)
-				os.Exit(1)
-			}
-			count++
-			goto try*/
 		}
-		/*_, err = kv.Put(&kvotherhostname, nil)
-		if err != nil {
-			logger.Println("[E] Set peer database repl_err_counter to 1 in CS failed!", err)
-			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_failed + "{{" + fmt.Sprintf("%s", err)
-			logger.Println("[I] Give up switching to async replication!")
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_async_repl
-			UploadLog(logkey, logvalue)
-			return
-		}*/
 		logger.Println("[I] Set peer database repl_err_counter to 1 in CS successfully!")
 		timestamp = time.Now().Unix()
 		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_success
@@ -309,17 +294,10 @@ func UploadLog(logkey, logvalue string) {
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 				continue
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
-				//return
 			}
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			//KV is used to return a handle to the K/V apis
-			//	kv = client.KV()
-			//Get is used to lookup a single key
 			_, err = kv.Put(&kvhostname, nil)
 			if err != nil {
 				count--

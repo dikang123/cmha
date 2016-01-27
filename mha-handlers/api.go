@@ -117,32 +117,38 @@ func SessionAndChecks() {
 	var kvPair *consulapi.KVPair
 	var kvMonitor *consulapi.KVPair
 	var err error
+	c := len(service_ip)
 	for i, _ := range service_ip {
 		config.Address = service_ip[i] + ":" + beego.AppConfig.String("service_port")
 		client, err = consulapi.NewClient(config)
 		if err != nil {
-			logger.Println("[E] Create consul-api client failed!", err)
+			c--
+			logger.Println("[E] Create consul-api client failed! CS ip = "+service_ip[i], err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
-			logger.Println("[I] Give up leader election")
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-			UploadLog(logkey, logvalue)
-			return
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+			continue
 		}
-		logger.Println("[I] Create consul-api client successfully!")
+		logger.Println("[I] Create consul-api client successfully! CS ip = " + service_ip[i])
 		timestamp := time.Now().Unix()
-		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
+		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
 		//KV is used to return a handle to the K/V apis
 		kv = client.KV()
 		//Get is used to lookup a single key
 		kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
 		if err != nil {
-			logger.Println("[E] Get and check current service leader from CS failed!", err)
+			c--
+			logger.Println("[E] Get and check current service leader from CS failed! CS ip = "+service_ip[i], err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + current_check_failed + "{{" + fmt.Sprintf("%s", err)
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + current_check_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 			continue
 		}
 		break
+	}
+	if c == 0 {
+		logger.Println("[I] Give up leader election")
+		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
+		UploadLog(logkey, logvalue)
+		return
 	}
 	logger.Println("[I] Get and check current service leader from CS successfully!")
 	timestamp = time.Now().Unix()
@@ -164,16 +170,10 @@ func SessionAndChecks() {
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 				continue
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
-				//return
 			}
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			//KV is used to return a handle to the K/V apis
-			kv = client.KV()
 			//Get is used to lookup a single key
 			kvMonitor, _, err = kv.Get("monitor/"+hostname, nil)
 			kvValue = string(kvMonitor.Value)
@@ -186,7 +186,7 @@ func SessionAndChecks() {
 			}
 			break
 		}
-		if count == 1 {
+		if count == 0 {
 			logger.Println("[I] Give up leader election")
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
 			UploadLog(logkey, logvalue)
@@ -245,17 +245,10 @@ func SessionAndChecks() {
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 				continue
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
-				//return
 			}
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			//KV is used to return a handle to the K/V apis
-			//kv = client.KV()
-			//Get is used to lookup a single key
 			healthvalue, _, err = health.Checks(servicename, nil)
 			if err != nil {
 				count--
@@ -324,17 +317,10 @@ func SessionAndChecks() {
 					timestamp := time.Now().Unix()
 					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 					continue
-					//logger.Println("[I] Give up leader election")
-					//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-					//UploadLog(logkey, logvalue)
-					//return
 				}
 				logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-				//KV is used to return a handle to the K/V apis
-				//	kv = client.KV()
-				//Get is used to lookup a single key
 				_, err = kv.Put(&updatevalue, nil)
 				if err != nil {
 					count--
@@ -370,17 +356,10 @@ func SessionAndChecks() {
 					timestamp := time.Now().Unix()
 					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 					continue
-					//logger.Println("[I] Give up leader election")
-					//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-					//UploadLog(logkey, logvalue)
-					//return
 				}
 				logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-				//KV is used to return a handle to the K/V apis
-				//	kv = client.KV()
-				//Get is used to lookup a single key
 				healthpair, _, err = health.Service(servicename, "", false, nil)
 				if err != nil {
 					count--
@@ -438,21 +417,20 @@ func SetConn(ip, port, username, password string) {
 	var err error
 	var sessionvalue string
 	var timestamp int64
+	c := len(service_ip)
 	for i, _ := range service_ip {
 		config.Address = service_ip[i] + ":" + beego.AppConfig.String("service_port")
 		client, err = consulapi.NewClient(config)
 		if err != nil {
-			logger.Println("[E] Create consul-api client failed!", err)
+			c--
+			logger.Println("[E] Create consul-api client failed! CS ip = "+service_ip[i], err)
 			timestamp = time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
-			logger.Println("[I] Give up leader election")
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-			UploadLog(logkey, logvalue)
-			return
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+			continue
 		}
-		logger.Println("[I] Create consul-api client successfully!")
+		logger.Println("[I] Create consul-api client successfully! CS ip = " + service_ip[i])
 		timestamp = time.Now().Unix()
-		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
+		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
 		session := client.Session()
 		sessionEntry := consulapi.SessionEntry{
 			LockDelay: 10 * time.Second,
@@ -463,12 +441,19 @@ func SetConn(ip, port, username, password string) {
 		//Create makes a new session. Providing a session entry can customize the session. It can also be nil to use defaults.
 		sessionvalue, _, err = session.Create(&sessionEntry, nil)
 		if err != nil {
-			logger.Println("[E] Session create failed!", err)
+			c--
+			logger.Println("[E] Session create failed! CS ip = "+service_ip[i], err)
 			timestamp = time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + create_session_failed + "{{" + fmt.Sprintf("%s", err)
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + create_session_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 			continue
 		}
 		break
+	}
+	if c == 0 {
+		logger.Println("[I] Give up leader election")
+		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
+		UploadLog(logkey, logvalue)
+		return
 	}
 	//NewClient returns a new client
 	beego.Info("Session create successfully!")
@@ -515,17 +500,10 @@ func SetConn(ip, port, username, password string) {
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 				continue
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
-				//return
 			}
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			//KV is used to return a handle to the K/V apis
-			//	kv = client.KV()
-			//Get is used to lookup a single key
 			ok, _, err = kv.Acquire(&kvpair, nil)
 			if err != nil {
 				count--
@@ -597,31 +575,28 @@ try:
 					timestamp := time.Now().Unix()
 					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 					continue
-					//logger.Println("[I] Give up leader election")
-					//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-					//UploadLog(logkey, logvalue)
-					//return
 				}
 				logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-				//KV is used to return a handle to the K/V apis
-				//	kv = client.KV()
-				//Get is used to lookup a single key
+				ct := 0
+			tr:
 				_, err := kv.Put(&kvotherhostname, nil)
 				if err != nil {
 					count--
 					logger.Println("[E] Set peer database repl_err_counter to 1 in CS failed! CS ip = "+service_ip[i], err)
 					timestamp = time.Now().Unix()
 					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
-					continue
+					if ct == 2 {
+						continue
+					} else {
+						ct++
+						goto tr
+					}
 				}
 				break
 			}
 			if count == 0 {
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
 				return
 			}
 		} else {
@@ -704,17 +679,10 @@ func UploadLog(logkey, logvalue string) {
 				timestamp := time.Now().Unix()
 				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
 				continue
-				//logger.Println("[I] Give up leader election")
-				//logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + give_election
-				//UploadLog(logkey, logvalue)
-				//return
 			}
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			//KV is used to return a handle to the K/V apis
-			//	kv = client.KV()
-			//Get is used to lookup a single key
 			_, err = kv.Put(&kvhostname, nil)
 			if err != nil {
 				count--
