@@ -92,21 +92,21 @@ func CheckService() {
 		client, err = consulapi.NewClient(config)
 		if err != nil {
 			c--
-			logger.Println("[E] Create consul-api client failed! CS ip = "+service_ip[i], err)
+			logger.Println("[E] Create consul-api client failed!", err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
 			continue
 		}
-		logger.Println("[I] Create consul-api client successfully! CS ip = " + service_ip[i])
+		logger.Println("[I] Create consul-api client successfully!")
 		timestamp := time.Now().Unix()
 		logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
 		health = client.Health()
 		healthpair, _, err = health.Service(servicename, tag, false, nil)
 		if err != nil {
 			c--
-			logger.Println("[E] Get peer service "+servicename+" health status from CS failed! CS ip = "+service_ip[i], err)
+			logger.Println("[E] Get peer service "+servicename+" health status from CS failed!", err)
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + peer_service_health_failed + "{{" + servicename + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + peer_service_health_failed + "{{" + servicename + "{{" + fmt.Sprintf("%s", err)
 			continue
 		}
 		break
@@ -222,22 +222,22 @@ func CheckService() {
 					client, err = consulapi.NewClient(config)
 					if err != nil {
 						count--
-						logger.Println("[E] Create consul-api client failed! CS ip= "+service_ip[i], err) //////
+						logger.Println("[E] Create consul-api client failed!", err)
 						timestamp := time.Now().Unix()
-						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
 						continue
 					}
-					logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
+					logger.Println("[I] Create consul-api client successfully!")
 					timestamp := time.Now().Unix()
-					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
+					logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
 					ct := 0
 				tr:
 					_, err = kv.Put(&kvotherhostname, nil)
 					if err != nil {
 						count--
-						logger.Println("[E] Set peer database repl_err_counter to 1 in CS failed! CS ip = "+service_ip[i], err)
+						logger.Println("[E] Set peer database repl_err_counter to 1 in CS failed!", err)
 						timestamp := time.Now().Unix()
-						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+						logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + set_counter_failed + "{{" + fmt.Sprintf("%s", err)
 						if ct == 2 {
 							continue
 						} else {
@@ -290,18 +290,18 @@ func UploadLog(logkey, logvalue string) {
 			client, err = consulapi.NewClient(config)
 			if err != nil {
 				count--
-				logger.Println("[E] Create consul-api client failed! CS ip= "+service_ip[i], err) //////
+				logger.Println("[E] Create consul-api client failed!", err)
 				timestamp := time.Now().Unix()
-				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + service_ip[i] + "{{" + fmt.Sprintf("%s", err)
+				logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_failed + "{{" + fmt.Sprintf("%s", err)
 				continue
 			}
-			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
+			logger.Println("[I] Create consul-api client successfully!")
 			timestamp := time.Now().Unix()
-			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
+			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
 			_, err = kv.Put(&kvhostname, nil)
 			if err != nil {
 				count--
-				logger.Println("[E] Upload log to CS failed! CS ip = "+service_ip[i], err)
+				logger.Println("[E] Upload log to CS failed!", err)
 				continue
 			}
 			break
