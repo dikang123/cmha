@@ -22,6 +22,7 @@ var kv *consulapi.KV
 var client *consulapi.Client
 var logvalue string
 var logkey string
+var leader string
 
 const (
 	triggered        = "001"
@@ -109,7 +110,7 @@ func SessionAndChecks() {
 	port = beego.AppConfig.String("port")
 	username = beego.AppConfig.String("username")
 	password = beego.AppConfig.String("password")
-	logkey = servicename + "/" + hostname + "/mha-handlers/" + strconv.FormatInt(timestamp, 10)
+	logkey = "cmha/service/" + servicename + "/log/" + hostname + "/mha-handlers/" + strconv.FormatInt(timestamp, 10)
 	config := &consulapi.Config{
 		Datacenter: beego.AppConfig.String("datacenter"),
 		Token:      beego.AppConfig.String("token"),
@@ -118,6 +119,7 @@ func SessionAndChecks() {
 	var kvMonitor *consulapi.KVPair
 	var err error
 	c := len(service_ip)
+	leader = "cmha/service/" + servicename + "/db/leader"
 	for i, _ := range service_ip {
 		config.Address = service_ip[i] + ":" + beego.AppConfig.String("service_port")
 		client, err = consulapi.NewClient(config)
@@ -134,7 +136,7 @@ func SessionAndChecks() {
 		//KV is used to return a handle to the K/V apis
 		kv = client.KV()
 		//Get is used to lookup a single key
-		kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
+		kvPair, _, err = kv.Get(leader, nil)
 		if err != nil {
 			c--
 			logger.Println("[E] Get and check current service leader from CS failed!", err)
@@ -153,7 +155,7 @@ func SessionAndChecks() {
 	logger.Println("[I] Get and check current service leader from CS successfully!")
 	timestamp = time.Now().Unix()
 	logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + current_check_success
-	kvMonitor, _, err = kv.Get("monitor/"+hostname, nil)
+	kvMonitor, _, err = kv.Get("cmha/service/"+servicename+"/db/"+hostname+"/repl_err_counter", nil)
 	var kvValue string
 	kvValue = string(kvMonitor.Value)
 	if err != nil {
@@ -175,7 +177,7 @@ func SessionAndChecks() {
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success
 			//Get is used to lookup a single key
-			kvMonitor, _, err = kv.Get("monitor/"+hostname, nil)
+			kvMonitor, _, err = kv.Get("cmha/service/"+servicename+"/db/"+hostname+"/repl_err_counter", nil)
 			kvValue = string(kvMonitor.Value)
 			if err != nil {
 				count--
@@ -299,7 +301,7 @@ func SessionAndChecks() {
 		return
 	} else {
 		updatevalue := consulapi.KVPair{
-			Key:   "service/" + servicename + "/leader",
+			Key:   leader,
 			Value: []byte(""),
 		}
 		_, err = kv.Put(&updatevalue, nil)
@@ -478,7 +480,7 @@ func SetConn(ip, port, username, password string) {
 	value := []byte(acquirejson)
 	kv = client.KV()
 	kvpair := consulapi.KVPair{
-		Key:     "service/" + servicename + "/leader",
+		Key:     leader,
 		Value:   value,
 		Session: sessionvalue,
 	}
@@ -553,7 +555,7 @@ func SetRepl_err_counter(hostname string) {
 	put = "1"
 	kvvalue := []byte(put)
 	kvotherhostname := consulapi.KVPair{
-		Key:   "monitor/" + hostname,
+		Key:   "cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter",
 		Value: kvvalue,
 	}
 try:

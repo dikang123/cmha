@@ -13,7 +13,10 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
+var leader string
+
 func Set(ip, port, username, password string, issynchronous int) {
+	leader = "cmha/service/" + servicename + "/db/leader"
 	servicename = beego.AppConfig.String("servicename")
 	service_ip = beego.AppConfig.Strings("service_ip")
 	other_hostname = beego.AppConfig.String("otherhostname")
@@ -53,7 +56,7 @@ func Set(ip, port, username, password string, issynchronous int) {
 	kv = client.KV()
 	health = client.Health()
 	SetRepl_err_counter(other_hostname)
-	kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
+	kvPair, _, err = kv.Get(leader, nil)
 	if err != nil {
 		logger.Println("[E] Get and check current service leader from CS failed!", err)
 		timestamp := time.Now().Unix()
@@ -72,7 +75,7 @@ func Set(ip, port, username, password string, issynchronous int) {
 			logger.Println("[I] Create consul-api client successfully! CS ip= " + service_ip[i])
 			timestamp := time.Now().Unix()
 			logvalue = logvalue + "|" + strconv.FormatInt(timestamp, 10) + consulapi_success + "{{" + service_ip[i]
-			kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
+			kvPair, _, err = kv.Get(leader, nil)
 			if err != nil {
 				count--
 				logger.Println("[E] Get and check current service leader from CS failed! CS ip = "+service_ip[i], err)
@@ -242,7 +245,7 @@ func SetRepl_err_counter(hostname string) {
 	put = "1"
 	kvvalue := []byte(put)
 	kvotherhostname := consulapi.KVPair{
-		Key:   "monitor/" + hostname,
+		Key:   "cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter",
 		Value: kvvalue,
 	}
 try:

@@ -78,7 +78,7 @@ func CheckService() {
 	hostname = beego.AppConfig.String("hostname")
 	other_hostname = beego.AppConfig.String("otherhostname")
 	tag = beego.AppConfig.String("tag")
-	logkey = servicename + "/" + hostname + "/monitor-handlers/" + strconv.FormatInt(timestamp, 10)
+	logkey = "cmha/service/" + servicename + "/log/" + hostname + "/monitor-handlers/" + strconv.FormatInt(timestamp, 10)
 	config := &consulapi.Config{
 		Datacenter: beego.AppConfig.String("datacenter"),
 		Token:      beego.AppConfig.String("token"),
@@ -204,7 +204,7 @@ func CheckService() {
 		put = "1"
 		kvvalue := []byte(put)
 		kvotherhostname := consulapi.KVPair{
-			Key:   "monitor/" + other_hostname,
+			Key:   "cmha/service/" + servicename + "/db/" + other_hostname + "/repl_err_counter",
 			Value: kvvalue,
 		}
 	try:

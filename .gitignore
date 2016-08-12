@@ -2,14 +2,13 @@
 *.o
 *.a
 *.so
-alerts-handler
-consul
-consul-template
-bootstrap
-applong
-cmha-cli
-mha-handlers
-monitor-handlers
+bin/consul
+bin/consul-template
+bootstrap/bootstrap
+applong/applong
+cmha-cli/cmha-cli
+monitor-handlers/monitor-handlers
+mha-handlers/mha-handlers
 _logs
 
 # Folders
