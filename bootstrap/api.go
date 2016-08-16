@@ -27,6 +27,7 @@ func SetConn() {
 	password = beego.AppConfig.String("password")
 	servicename = beego.AppConfig.String("servicename")
 	service_ip = beego.AppConfig.Strings("service_ip")
+	leader := "cmha/service/" + servicename + "/db/leader"
 	//Config is used to configure the creation of a client
 	config := &consulapi.Config{
 		Datacenter: beego.AppConfig.String("datacenter"),
@@ -47,9 +48,9 @@ func SetConn() {
 		//KV is used to return a handle to the K/V apis
 		kv = client.KV()
 		//Get is used to lookup a single key
-		kvPair, _, err = kv.Get("service/"+servicename+"/leader", nil)
+		kvPair, _, err = kv.Get(leader, nil)
 		if err != nil {
-			beego.Error("Get a service/"+servicename+"/leader key failure!", err)
+			beego.Error("Get a "+leader+" key failure!", err)
 			continue
 		}
 		break
@@ -58,29 +59,29 @@ func SetConn() {
 	put = "0"
 	kvvalue := []byte(put)
 	kvhostname := consulapi.KVPair{
-		Key:   "monitor/" + hostname,
+		Key:   "cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter",
 		Value: kvvalue,
 	}
 	kvotherhostname := consulapi.KVPair{
-		Key:   "monitor/" + other_hostname,
+		Key:   "cmha/service/" + servicename + "/db/" + other_hostname + "/repl_err_counter",
 		Value: kvvalue,
 	}
 	_, err = kv.Put(&kvhostname, nil)
 	if err != nil {
-		beego.Error("monitor/"+hostname+" put failure!", err)
+		beego.Error("cmha/service/"+servicename+"/db/"+hostname+"/repl_err_counter put failure!", err)
 		return
 	}
-	beego.Info("monitor/" + hostname + " put success!")
+	beego.Info("cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter put success!")
 	_, err = kv.Put(&kvotherhostname, nil)
 	if err != nil {
-		beego.Error("monitor/"+other_hostname+" put failure!", err)
+		beego.Error("cmha/service/"+servicename+"/db/"+other_hostname+"/repl_err_counter put failure!", err)
 		return
 	}
-	beego.Info("monitor/" + other_hostname + " put success!")
+	beego.Info("cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter put success!")
 	//NewClient returns a new client
-	beego.Info("Get a service/" + servicename + "/leader key success!")
+	beego.Info("Get a " + leader + " key success!")
 	if kvPair == nil {
-		beego.Error("service/" + servicename + "/leader not found, please create the key!")
+		beego.Error(leader + "not found, please create the key!")
 		return
 	}
 	//Are there external connection string provided
@@ -141,7 +142,7 @@ func SetConn() {
 		}
 		value := []byte(acquirejson)
 		kvpair := consulapi.KVPair{
-			Key:     "service/" + servicename + "/leader",
+			Key:     leader,
 			Value:   value,
 			Session: sessionvalue,
 		}
