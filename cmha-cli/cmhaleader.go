@@ -2,17 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	consulapi "github.com/hashicorp/consul/api"
+
+	"github.com/upmio/cmha-cli/cliconfig"
 )
 
 func CmhaLeader(args ...string) error {
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("cmha-datacenter"),
-		Token:      beego.AppConfig.String("cmha-token"),
-		Address:    beego.AppConfig.String("cmha-server-ip") + ":8500",
-	}
-	client, err := consulapi.NewClient(config)
+
+	client, err := cliconfig.Consul_Client_Init()
+
 	if err != nil {
 		fmt.Println("leader.go Create consul-api client failure!", err)
 		return err

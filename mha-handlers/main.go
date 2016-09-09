@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	//	"github.com/astaxie/beego"
-	"os"
-	//	"time"
 	"log"
+	"os"
 )
 
 var logfile *os.File
@@ -26,7 +24,7 @@ func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-			fmt.Println("1.1.5-Beta.1")
+			fmt.Println("1.1.5-Beta.4")
 			return
 		} else {
 			return

@@ -34,12 +34,9 @@ func GetLastTime(last_leader_key string, kv *consulapi.KV) (string, error) {
 	return last_time, nil
 }
 
-func IsAlerts(last_time, servicename, last_leader, kvValue,last_leader_key string, C_time int64, kv *consulapi.KV) error {
+func IsAlerts(last_time, servicename, last_leader, kvValue,last_leader_key string, C_time int64, kv *consulapi.KV,dataTimeStr string,_alert string) error {
 	last_timess, _ := strconv.ParseInt(last_time, 10, 64)
 	S_time := C_time - last_timess
-	log.Infof("C_time:",C_time)
-	log.Infof("last_time:",last_timess)
-	log.Infof("S_time:",S_time)
 	S_time_string := strconv.FormatInt(S_time, 10)
 	S_time_int, err := strconv.Atoi(S_time_string)
 	if err != nil {
@@ -47,29 +44,64 @@ func IsAlerts(last_time, servicename, last_leader, kvValue,last_leader_key strin
 		return err
 	}
 	if S_time_int > 30 {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] MySQL occurs failover,Leader from the [" + last_leader + "] switch to [" + kvValue + "]")
-		C_time,dataTimeStr:=GetNowTime()
-		C_time_string := strconv.FormatInt(C_time, 10)
-        	last_leader_value := dataTimeStr + "||" + C_time_string + "||" + kvValue
+		alertid :=time.Now().UnixNano()
+		id, alertdate := GetNowTime()
+		log.Infof("leader from the switch to:",alertid,alertdate)
+		alert_counter_key := _alert + strconv.FormatInt(alertid,10)
+		str := "[ERROR]: ["  + servicename + "]  MySQL occurs failover,Leader from the [" + last_leader + "] switch to [" + kvValue + "]"
+                alter_counter_value := "[" + alertdate + "]" + "@" + str
+                err = PutKv(servicename, alert_counter_key, alter_counter_value, kv)
+                if err != nil {
+                        log.Errorf("Put %s failed!", alert_counter_key, err)
+                        return err
+                }
+		log.MyLoGGer(id).Println("[ERROR]: [" + servicename + "] MySQL occurs failover,Leader from the [" + last_leader + "] switch to [" + kvValue + "]")
+
+		C_time_now,data:=GetNowTime()
+		C_time_string := strconv.FormatInt(C_time_now, 10)
+        	last_leader_value := data + "||" + C_time_string + "||" + kvValue
         	err := PutKv(servicename, last_leader_key, last_leader_value, kv)
         	if err != nil {
                 	log.Errorf("Put last leader failed!", err)
                 	return err
         	}
+
 	}
 	return nil
 }
 
-func AlertsAndPutKv(servicename,kvValue, dataTimeStr, last_leader_key string, kv *consulapi.KV) error {
-	log.MyLoGGer().Println("[ERROR]: [" + servicename + "] MySQL occurs failover,Leader switch to " + kvValue)
-	C_time,dataTimeStr:=GetNowTime()
+func AlertsAndPutKv(servicename,kvValue, dataTimeStr, last_leader_key string, kv *consulapi.KV,_alert string,C_time int64) error {
+	alertid :=time.Now().UnixNano()
+	id, alertdate := GetNowTime()
+	log.Infof("leader switch to:",alertid,alertdate)
+	str := "[ERROR]: [" + servicename + "] MySQL occurs failover,Leader switch to [" + kvValue + "]"
+        alter_counter_value := "[" + alertdate + "]" + "@" + str
+	alert_counter_key := _alert + strconv.FormatInt(alertid,10)
+        err := PutKv(servicename, alert_counter_key, alter_counter_value, kv)
+        if err != nil {
+         	log.Errorf("Put %s failed!", alert_counter_key, err)
+                return err
+        }
+	log.MyLoGGer(id).Println("[ERROR]: [" + servicename + "] MySQL occurs failover,switch to [" + kvValue + "]")
+
+	C_time,data:=GetNowTime()
 	C_time_string := strconv.FormatInt(C_time, 10)
-	last_leader_Value := dataTimeStr + "||" + C_time_string + "||" + kvValue
-	log.Info("last_leader_value:",last_leader_Value)
-	err := PutKv(servicename, last_leader_key, last_leader_Value, kv)
+	last_leader_Value := data + "||" + C_time_string + "||" + kvValue
+	err = PutKv(servicename, last_leader_key, last_leader_Value, kv)
 	if err != nil {
 		log.Errorf("Put last leader failed!", err)
 		return err
 	}
 	return nil
+}
+
+func StringToInt(instr string) (int64, error) {
+
+        _ret, err := strconv.ParseInt(instr, 10, 64)
+
+        if err != nil {
+                return 0, err
+        }
+
+        return _ret, nil
 }

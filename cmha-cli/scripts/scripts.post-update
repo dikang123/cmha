@@ -1,0 +1,5 @@
+
+# curl -X POST -u <user>:<password> http://192.168.122.99:8080/job/cmha-cli/build?delay=0sec
+# curl -X POST  -I -s http://jenkins:ff2809da202fe361a78dc3a46fad6f6e@192.168.122.99:8080/job/cmha-cli/build
+# curl -X POST  -I -u jenkins:ff2809da202fe361a78dc3a46fad6f6e -s http://192.168.122.99:8080/job/cmha-cli/build
+

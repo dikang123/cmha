@@ -2,15 +2,41 @@ package main
 
 import (
 	"fmt"
-	"github.com/HardySimpson/linenoise"
-	"github.com/astaxie/beego"
-	consulapi "github.com/hashicorp/consul/api"
+
+	"github.com/upmio/cmha-cli/cliconfig"
+	"github.com/0-T-0/go.linenoise"
 	"os"
 	"strings"
 	"unsafe"
 )
 
-var service_ip []string
+var (
+	service_ip              []string
+	VERSION                 = "1.1.5-Beta.12"
+	Prog                    = "CMHA CLI"
+	history_file            = ".cmha-cli.history"
+	max_number_history_line = 300
+	service_name            = "CS"
+	cmdline                 = ""
+	nodes_data              [2][3]string
+)
+
+func welcomebanner() {
+	banner := `
+Welcome to the %s.
+Version: %s
+
+
+Copyright [2016] [BSG China]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+`
+	fmt.Printf(banner, ColorRender(Prog, COLOR_SUM), VERSION)
+
+}
 
 // this func is called every time when people hit the tab button
 func cb(buf string, lc unsafe.Pointer) {
@@ -35,18 +61,14 @@ func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-			fmt.Println("version 1.1.4")
+			fmt.Println("version", VERSION)
 			return
 		} else {
 			return
 		}
 	}
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("cmha-datacenter"),
-		Token:      beego.AppConfig.String("cmha-token"),
-		Address:    beego.AppConfig.String("cmha-server-ip") + ":8500",
-	}
-	client, err := consulapi.NewClient(config)
+
+	client, err := cliconfig.Consul_Client_Init()
 	if err != nil {
 		fmt.Println(" Create consul-api client failure!", err)
 		return
@@ -61,192 +83,539 @@ func main() {
 		fmt.Println("No cluster leader!")
 		return
 	}
-	/*service_ip = beego.AppConfig.Strings("cmha-server-ip")
-	//fmt.Println(service_ip)
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("datacenter"),
-		Token:      beego.AppConfig.String("token"),
-		//	Address: beego.AppConfig.String("service_ip") + ":" + beego.AppConfig.String("service_port"),
-	}
-	//	var kvPair *consulapi.KVPair
-	var client *consulapi.Client
-	var err error
-	var a int
-	for i, _ := range service_ip {
-		//fmt.Println("aaaaaa", service_ip[i])
-		config.Address = service_ip[i] + ":" + "8500"
-		client, err = consulapi.NewClient(config)
-		if err != nil {
-			//beego.Error("Create consul-api client failure!", err)
-			return
-		}
-		//beego.Info(" Create consul-api client success!")
-		status := client.Status()
-		leader, err := status.Leader()
-		if err != nil {
-			//fmt.Println("Please reset cmha tool configure  file cmha-server-ip or no cluster leader please create cluster!", service_ip[i])
-			//fmt.Println(service_ip[i])
-			//return
-			fmt.Println("configure file cmha-server-ip err", service_ip[i])
-			a += 1
-			continue
-		}
-		if leader == "" {
-			fmt.Println("No cluster leader!", service_ip[i])
-			//return
-			a += 1
-			continue
-		}
-		break
-	}
-	if a == len(service_ip) {
-		fmt.Println("Please reset cmha tool configure  file cmha-server-ip or no cluster leader please create cluster!")
-		return
-	}*/
+
 	linenoise.SetMultiLine(true) //with multi line set,
 	//the input will display in multi line when you type more than a line long
 	linenoise.SetCompletionCallback(cb)
-	linenoise.HistoryLoad("history.txt") //load from disk
-	linenoise.HistorySetMaxLen(10)
-	help()
-MainLoop: //max line keep in memory and disk
+	linenoise.HistoryLoad(history_file) //load from disk
+	linenoise.HistorySetMaxLen(max_number_history_line)
+
+	welcomebanner()
+
 	for {
-		line, end := linenoise.Scan("cmha > ")
-		if end {
-			return
+
+		cmdline = ""
+		
+		if str, end := linenoise.Scan(renderprompt(service_name)); end {
+
+			fmt.Printf("Unexpected error\n")
+			cliquit()
+
+		} else {
+			cmdline = str
 		}
 
-		linenoise.HistoryAdd(line) //add to memory
-		linenoise.HistorySave("history.txt")
-		arr := strings.Trim(line, " ") //add to disk
-		cmds, _ := cleanCommand(arr)
-		//fmt.Println(len(cmds))
-		if len(cmds) == 1 {
-			//		Rout:
-			switch arr {
-			case "exit", "quit":
-				fmt.Println("Exiting...")
-				break MainLoop
-			case "clear":
-				linenoise.ClearScreen()
-			case "help":
-				help()
-			case "show":
-				help("show")
-			case "set":
-				help("set")
-			/*case "check":
-				help("check")
-			case "monitor":
-				help("monitor")*/
-			default:
-				fmt.Println("Unknown command")
-			}
-		} else if len(cmds) == 2 {
-			switch cmds[0] {
-			case "show":
-				switch cmds[1] {
-				case "cluster":
-					Cluster()
-				case "chap":
-					Chap()
-				case "db":
-					Db()
-				case "dbleader":
-					DbLeader()
-				case "cmhaleader":
-					CmhaLeader()
-				/*case "monitorkv":
-					MonitorKv()*/
-				default:
-					fmt.Println("Unknown command")
-				}
-			case "set":
-				switch cmds[1] {
-				case "vsr":
-					fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
-				case "read_only":
-					fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
-				case "slave_start":
-					fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
-				case "slave_stop":
-					fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
-				default:
-					fmt.Println("Unknown command")
-				}
-			default:
-				fmt.Println("Unknown command")
-			}
-		} else if len(cmds) == 3 {
-			switch cmds[0] {
-			case "show":
-				switch cmds[1] {
-				case "cluster":
-					Cluster(cmds[2])
-				case "chap":
-					Chap(cmds[2])
-				case "db":
-					Db(cmds[2])
-				case "dbleader":
-					DbLeader(cmds[2])
-				case "repl_err_counter":
-					MonitorKv(cmds[2])
-				default:
-					fmt.Println("Unknown command")
-				}
-			case "set":
-				switch cmds[1] {
-				case "repl_err_counter":
-					Setmonitorkv(cmds[2])
-				case "vsr":
-					fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
-				case "read_only":
-					fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
-				case "slave_start":
-					fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
-				case "slave_stop":
-					fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
-				default:
-					fmt.Println("Unknown command")
-				}
-			default:
-				fmt.Println("Unknown command")
-			}
-		} else if len(cmds) == 4 {
-			switch cmds[0] {
-			case "set":
-				switch cmds[1] {
-				case "slave_start":
-					SetSlaveStart(cmds[2], cmds[3])
-				case "slave_stop":
-					SetSlaveStop(cmds[2], cmds[3])
-				case "vsr":
-					fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
-				case "read_only":
-					fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
-				}
-			}
-		} else if len(cmds) == 5 {
-			switch cmds[0] {
-			case "set":
-				switch cmds[1] {
-				case "vsr":
-					SetVsr(cmds[2], cmds[3], cmds[4])
-				case "read_only":
-					SetReadOnly(cmds[2], cmds[3], cmds[4])
-				case "slave_start":
-					fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
-				case "slave_stop":
-					fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
-				}
-			}
-		} else {
-			fmt.Println("Missing Parameters")
+		linenoise.HistoryAdd(cmdline) //add to memory
+		linenoise.HistorySave(history_file)
+
+		fields := strings.Fields(cmdline)
+
+		if len(fields) == 0 {
+			sayUnrecognized()
+			continue
 		}
+
+		switch fields[0] {
+		case "exit", "quit", "\\q":
+			cliquit()
+
+		case "clear", "\\c":
+			linenoise.ClearScreen()
+
+		case "help", "\\h", "\\?":
+			helpCMD(fields[1:])
+		case "show", "\\s":
+
+			if len(fields) < 2 {
+				help("show")
+				continue
+			}
+
+			switch fields[1] {
+			case "cluster":
+				Cluster()
+
+			case "status":
+				Status()
+			case "alert_boot":
+				if service_name == "" {
+					fmt.Printf("Must to be use a service. Before use command 'show %s' .\n", fields[1])
+					help("use")
+					continue
+				}
+				AlertBoot(service_name)
+			case "alerts":
+				if service_name == "" {
+					fmt.Println("Welcome see CS alerts info.")
+					if len(fields) == 2 {
+						if err := show_all_alerts("", ""); err != nil {
+							fmt.Println(err.Error())
+						}
+					} else if len(fields) == 3 {
+						if fields[2] == "list" {
+							if err := show_all_alerts("", "list"); err != nil {
+								fmt.Println(err.Error())
+							}
+						} else if len(fields[2]) == 19 {
+							if err := show_alerts_detail("", fields[2]); err != nil {
+								fmt.Println(err.Error())
+							}
+						} else if len(fields[2]) == 39 {
+							_ids := strings.Split(fields[2], ",")
+
+							if len(_ids) != 2 {
+								fmt.Println("%s is not a valid alerts id.", fields[2])
+								continue
+
+							}
+							if err := show_alerts("", _ids[0], _ids[1]); err != nil {
+								fmt.Println(err.Error())
+							}
+						}
+					}
+				} else {
+					fmt.Println("Welcome see " + service_name + " alerts info.")
+					if len(fields) == 2 {
+						if err := show_all_alerts(service_name, ""); err != nil {
+							fmt.Println(err.Error())
+						}
+					} else if len(fields) == 3 {
+						if fields[2] == "list" {
+							if err := show_all_alerts(service_name, "list"); err != nil {
+								fmt.Println(err.Error())
+							}
+						} else if len(fields[2]) == 19 {
+							if err := show_alerts_detail(service_name, fields[2]); err != nil {
+								fmt.Println(err.Error())
+							}
+						} else if len(fields[2]) == 39 {
+							_ids := strings.Split(fields[2], ",")
+
+							if len(_ids) != 2 {
+
+								fmt.Println("%s is not a valid alerts id.", fields[2])
+								continue
+
+							}
+							if err := show_alerts(service_name, _ids[0], _ids[1]); err != nil {
+								fmt.Println(err.Error())
+							}
+						}
+					}
+				}
+			case "mhalog":
+				if service_name == "" {
+					fmt.Printf("Must to be use a service. Before use command 'show %s' .\n", fields[1])
+					help("use")
+					continue
+				}
+
+
+				if len(fields) <= 2 {
+
+					help("show", fields[1])
+					continue
+				}
+
+				if len(fields) == 3 {
+					node_name := fields[2]
+					if err := ShowLog(service_name, node_name, LOG_MHA); err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+
+				if len(fields) > 3 {
+					node_name := fields[2]
+					if err := ShowLog(service_name, node_name, LOG_MHA, fields[3:]...); err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+
+			case "monitorlog":
+				if service_name == "" {
+					fmt.Printf("Must to be use a service. Before use command 'show %s' .\n", fields[1])
+					help("use")
+					continue
+				}
+
+
+				if len(fields) <= 2 {
+					help("show", fields[1])
+					continue
+				}
+
+				if len(fields) == 3 {
+					node_name := fields[2]
+					if err := ShowLog(service_name, node_name, LOG_MONITOR); err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+
+				if len(fields) > 3 {
+					node_name := fields[2]
+					if err := ShowLog(service_name, node_name, LOG_MONITOR, fields[3:]...); err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+
+			case "info":
+
+				if service_name == "" {
+					fmt.Printf("Must to be use a service. Before use command '%s' .\n", "show info")
+					help("use")
+					continue
+				}else if service_name == "CS" {
+					help("show")	
+				}else{
+					Service_Status(service_name)
+				}
+
+			default:
+				help("show")
+			}
+
+		case "use", "\\u":
+
+			if len(fields) != 2 {
+				help("use")
+				continue
+			}
+
+			//serive name
+			if fields[1] != "CS" {
+				if ok, err := Use_service(fields[1]); ok {
+
+					service_name = fields[1]
+					fmt.Printf("Service has changed to %s\n", ColorRender(service_name, COLOR_SUM))
+
+					if _nodes_data, err := get_Nodes_Info(service_name); err != nil {
+						fmt.Printf("%s\n", err.Error())
+					} else {
+	
+						for i, _ := range _nodes_data {
+							for j, v := range _nodes_data[i] {
+								nodes_data[i][j] = v
+							}
+
+						}
+					}
+
+				} else {
+					fmt.Printf("%s\n", err)
+					help("use")
+					continue
+				}
+			}else{
+				service_name = fields[1]
+				fmt.Printf("Service has changed to %s\n", ColorRender(service_name, COLOR_SUM))
+				continue
+			}
+
+		case "purge", "\\p":
+
+			if service_name == "" {
+				fmt.Printf("Must to be use a service. Before use command '%s' .\n", fields[0])
+				help("use")
+				continue
+			}
+
+			if len(fields) < 4 {
+
+				help(fields[0])
+				continue
+
+			}
+
+			var logtype string
+
+			if fields[1] == "mhalog" {
+				logtype = LOG_MHA
+
+			} else if fields[1] == "monitorlog" {
+
+				logtype = LOG_MONITOR
+			} else {
+				help(fields[0])
+				continue
+			}
+
+			node_name := fields[2]
+
+			_timestamps := fields[3:]
+
+			if _timestamps[0] == "all" {
+
+				if err := PurgeLog(service_name, node_name, logtype); err != nil {
+
+					fmt.Printf("\n%s\n", err.Error())
+					help(fields[0])
+					continue
+				}
+
+			} else {
+
+				if err := PurgeLog(service_name, node_name, logtype, _timestamps...); err != nil {
+
+					fmt.Printf("\n%s\n", err.Error())
+					help(fields[0])
+					continue
+				}
+
+			}
+		case "set":
+
+			if service_name == "" {
+				fmt.Printf("Must to be use a service. Before use command '%s' .\n", fields[0])
+				help("use")
+				continue
+			}else if len(fields) < 3{
+				help("set")
+			}else{
+				setCMD(fields[1:], service_name)
+			}
+		default:
+			sayUnrecognized()
+		}
+
 	}
 }
+
+func show_monitor_log() error {
+
+	return nil
+
+}
+
+func show_mha_log() error {
+
+	return nil
+
+}
+
+func helpCMD(args []string) {
+	if len(args) < 1 {
+		help()
+	} else {
+		help(args[0])
+	}
+
+}
+
+func setCMD(args []string, service_name string) {
+	if service_name == "CS" {
+		if len(args) == 2{
+			switch args[0]{
+			case "alert_boot":
+                        	if args[1] == "on" || args[1] == "off" {
+                               		Setmonitorkv(service_name, "alert", args[1])
+                        	} else {
+                                	fmt.Println("Parameter error,eg:set alert on/off")
+                        	}
+			default:
+                        	sayUnrecognized()
+			}		
+		}
+	}else{
+
+		if len(args) == 1 {
+			switch args[0] {
+			case "vsr":
+				fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
+			case "read_only":
+				fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
+			case "slave_start":
+				fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
+			case "slave_stop":
+				fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
+			default:
+				sayUnrecognized()
+			}
+		} else if len(args) == 2 {
+			switch args[0] {
+			case "repl_err_counter":
+	
+				_nodename := args[1]
+				if is_valid_node(_nodename) {
+					Setmonitorkv(_nodename, service_name, "repl")
+	
+				} else {
+					say_invalid_node(_nodename)
+				}
+			case "alert_boot":
+				if args[1] == "on" || args[1] == "off" {
+					Setmonitorkv(service_name, "alert", args[1])
+				} else {
+					fmt.Println("Parameter error,eg:set alert on/off")
+				}
+	
+			case "vsr":
+				fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
+			case "read_only":
+				fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
+			case "slave_start":
+				fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
+			case "slave_stop":
+				fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
+	
+			default:
+				sayUnrecognized()
+			}
+		} else if len(args) == 3 {
+			switch args[0] {
+			case "slave_start":
+	
+				_ip := args[1]
+				_port := args[2]
+				if is_valid_node(_ip, _port) {
+	
+					SetSlaveStart(_ip, _port)
+	
+				} else {
+					say_invalid_node(_ip, _port)
+				}
+	
+			case "slave_stop":
+	
+				_ip := args[1]
+				_port := args[2]
+				if is_valid_node(_ip, _port) {
+	
+					SetSlaveStop(_ip, _port)
+	
+				} else {
+					say_invalid_node(_ip, _port)
+				}
+	
+			case "vsr":
+				fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
+			case "read_only":
+				fmt.Println("Parameter error,eg:set read_only 192.168.2.1 3306 on")
+			default:
+				sayUnrecognized()
+			}
+		} else if len(args) == 4 {
+	
+			switch args[0] {
+			case "vsr":
+
+				_ip := args[1]
+				_port := args[2]
+				if is_valid_node(_ip, _port) {
+	
+					SetVsr(_ip, _port, args[3])
+	
+				} else {
+					say_invalid_node(_ip, _port)
+				}
+	
+			case "read_only":
+	
+				_ip := args[1]
+				_port := args[2]
+				if is_valid_node(_ip, _port) {
+	
+					SetReadOnly(_ip, _port, args[3])
+	
+				} else {
+					say_invalid_node(_ip, _port)
+				}
+	
+			case "slave_start":
+				fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
+			case "slave_stop":
+				fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
+			default:
+				sayUnrecognized()
+	
+			}
+	
+		} else {
+			fmt.Println("Missing Parameters")
+			help("set")
+		}
+	}	
+}
+
+func say_invalid_node(_nodedata ...string) {
+
+	var node_info string
+	if len(_nodedata) == 1 {
+		node_info = _nodedata[0]
+	}
+
+	if len(_nodedata) == 2 {
+		node_info = fmt.Sprintf("%s:%s", _nodedata[0], _nodedata[1])
+	}
+
+	fmt.Println()
+	fmt.Printf("There is NOT a node in %s, such as %s\n", service_name, node_info)
+	fmt.Println()
+
+}
+
+// verify a node in service by node name, or node ip and  port.
+// is_valid_node(nodename)
+// is_valid_node(ip,port)
+func is_valid_node(_nodedata ...string) bool {
+	if len(_nodedata) < 1 {
+		return false
+	}
+
+	var ret bool = false
+
+	// verify node name
+	if len(_nodedata) == 1 {
+		for _, node_data := range nodes_data {
+
+			if _nodedata[0] == node_data[0] {
+				ret = true
+				continue
+			}
+		}
+	}
+
+	// verify ip and port
+	if len(_nodedata) == 2 {
+		for _, node_data := range nodes_data {
+
+			if _nodedata[0] == node_data[1] &&
+				_nodedata[1] == node_data[2] {
+				ret = true
+				continue
+			}
+		}
+	}
+
+	return ret
+
+}
+
+func cliquit() {
+
+	fmt.Printf("Bye\n")
+	os.Exit(0)
+
+}
+
 func cleanCommand(cmd string) ([]string, error) {
-	//cmd_args := strings.Split(strings.Trim(cmd, " \n"), " ")
 	cmd_args := strings.Fields(cmd)
 	return cmd_args, nil
+}
+
+func sayUnrecognized() {
+
+	fmt.Println("Unknown command. Use 'help'.")
+	fmt.Println("")
+
+}
+
+func renderprompt(servicename string) string {
+
+	sname := servicename
+
+	if len(sname) == 0 {
+		sname = "CS"
+	}
+
+	return fmt.Sprintf("CMHA [%s]> ", sname)
 }

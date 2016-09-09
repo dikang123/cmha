@@ -26,8 +26,8 @@ var (
 	mylogger       = log.New(os.Stderr, "", log.Ltime|log.Ldate)
 )
 
-func MyLoGGer() *log.Logger {
-	nowtime := time.Now().Unix()
+func MyLoGGer(nowtime int64) *log.Logger {
+//	nowtime := time.Now().Unix()
 
 	//nowtime := time.Unix(time.Now().Unix(), 0)
 	timeLayout := "2006-01-02 15:04:05"

@@ -2,8 +2,6 @@ package alerts
 
 import (
 	"bufio"
-	"crypto/md5"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -41,6 +39,16 @@ func GetKv(key string, kv *consulapi.KV) (*consulapi.KVPair, error) {
 	return kvPair, nil
 }
 
+
+func DeleteKv(key string, kv *consulapi.KV)error{
+	_, err := kv.Delete(key, nil)
+	if err != nil {
+		log.Errorf("Delete failed:",key,err)
+		return err
+	}
+	return nil
+}
+
 func ReadFile(catalog *consulapi.Catalog, kv *consulapi.KV, C_time int64, dataTimeStr, servicename string, iscs bool) {
 	frequency := beego.AppConfig.String("frequency")
 	frequency_int, err := strconv.Atoi(frequency)
@@ -70,113 +78,169 @@ func ReadFile(catalog *consulapi.Catalog, kv *consulapi.KV, C_time int64, dataTi
 			break
 		}
 		a_string := string(a)
-		fmt.Println("string", a_string)
 		status, checkid, node, output := PareInfo(a_string)
-		fmt.Println(status, checkid, node, output)
 		nodes, _, err := catalog.Nodes(nil)
 		if err != nil {
 			log.Errorf("query nodes error:", err)
 			continue
 		}
 		var address string
+		var nodename string
 		for index := range nodes {
 			if nodes[index].Node == node {
 				address = nodes[index].Address
+				nodename = nodes[index].Node
 				break
 			}
 		}
-		md5s := status + checkid + node + address + output
-		ms := []byte(md5s)
-		m := md5.Sum(ms)
-		var alert_counter_key string
+		var _alert_counter_key,alert_counter_key string
+		var _alerts_key,alerts_key string
+		var _key string
 		if iscs {
-			alert_counter_key = node + "_cs_alerts_counter"
-			log.Info(alert_counter_key)
+			_alert_counter_key = "cmha/service/CS/alerts/alerts_counter/"
+			_alerts_key = "cmha/service/CS/alerts/" + nodename + "/"
+			_key = "cmha/service/CS/alerts/" + nodename + "/"
 		} else {
-			alert_counter_key = node + "_service_alerts_counter"
-			log.Info(alert_counter_key)
+			_alert_counter_key = "cmha/service/" + servicename + "/alerts/alerts_counter/"
+			_alerts_key = "cmha/service/" +servicename + "/alerts/" +nodename +"/"
+			_key = "cmha/service/"+servicename +"/alerts/" + nodename + "/"
 		}
-		log.Infof("alert_counter_key:%s", alert_counter_key)
-		alert_kvPair, err := GetKv(alert_counter_key, kv)
-		if err != nil {
-			log.Errorf("Get leader failed!", err)
-			//			return
-			break
-		}
-		if alert_kvPair != nil {
-			log.Info("111cs")
-			log.Infof("get alert_counter_key is not empry")
-			alert_kvPair_value := string(alert_kvPair.Value)
-			if strings.Contains(alert_kvPair_value, string(m[:])) {
-				alert_kvPair_values := strings.Split(alert_kvPair_value, "@")
-				var L_time string
-				for i := range alert_kvPair_values {
-					if i == 0 {
-						L_time = alert_kvPair_values[i]
-						break
-					}
-				}
-				L_times, _ := time.ParseInLocation("2006-01-02 15:04:05", L_time, time.Local)
-				L_timess := L_times.Unix()
-				S_time := C_time - L_timess
-				S_time_string := strconv.FormatInt(S_time, 10)
-				S_time_int, err := strconv.Atoi(S_time_string)
-				if err != nil {
-					log.Errorf("S_time string to int error: %s", err)
-					break
-				}
-				if S_time_int > frequency_int {
-					log.Info("222cs")
-					log.Infof("alerts")
-					ServiceAlerts(output, servicename, node, address, status, checkid)
-					//					log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + hosts[host] + " " + addr + " repl_err_counter is 1")
-					alter_counter_value := dataTimeStr + "@" + string(m[:])
-					err = PutKv(servicename, alert_counter_key, alter_counter_value, kv)
-					if err != nil {
-						log.Errorf("Put %s failed!", alert_counter_key, err)
-						break
-					}
-				}
-			} else {
-				log.Info("333cs")
-				ServiceAlerts(output, servicename, node, address, status, checkid)
-				//				log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + hosts[host] + " " + addr + " repl_err_counter is 1")
-				alter_counter_value := dataTimeStr + "@" + string(m[:])
-				err = PutKv(servicename, alert_counter_key, alter_counter_value, kv)
-				if err != nil {
-					log.Errorf("Put %s failed!", alert_counter_key, err)
-					break
-				}
-				log.Infof("put key success")
+		now_alerts :=NowAlerts(output, servicename, node, address, status, checkid)
+		logs, _, _err := kv.List(_key, nil)
+                if _err != nil {
+                	log.Errorf("query %s list failed!",_key,err)
+                        break
+                }
+		if logs != nil {
+			c := 0
+			for _, v := range logs {
+				key_items := strings.Split(v.Key, "/")
+                                key_timestamp := key_items[len(key_items)-1]
+                                L_time, _err := StringToInt(key_timestamp)
+                                if _err != nil {
+                                	log.Errorf("string to int failed!",err)
+                                        continue
+                                }
+                              	S_time := C_time-L_time
+                                S_time_string := strconv.FormatInt(S_time, 10)
+                                S_time_int, err := strconv.Atoi(S_time_string)
+                                if err != nil {
+                                	log.Errorf("S_time string to int error: %s", err)
+                                        break
+                                }
+				if S_time_int <= frequency_int {
+                                	alert_kvPair, err := GetKv(v.Key, kv)
+                                	if err != nil {
+                                		log.Errorf("Get %s failed!",v.Key,err)
+                                        	break
+                                	}
+                                	if alert_kvPair != nil {
+                                		alert_kvPair_value := string(alert_kvPair.Value)
+                                        	if alert_kvPair_value == now_alerts {
+                                        		c += 1
+							break
+                                        	}
+					}else{
+                                        	continue
+                                	}
+                                }
 			}
-		} else {
-			ServiceAlerts(output, servicename, node, address, status, checkid)
-			log.Infof("get alert_counter_key is empary")
-			//			log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + hosts[host] + " " + addr + " repl_err_counter is 1")
-			alert_counter_value := dataTimeStr + "@" + string(m[:])
-			err = PutKv(servicename, alert_counter_key, alert_counter_value, kv)
-			if err != nil {
-				log.Errorf("Put %s failed!", alert_counter_key, err)
-				break
+			if c == 0 {
+				alertid :=time.Now().UnixNano()
+				id, alertdate := GetNowTime()
+				log.Infof("service or cs:",alertid,alertdate,_alert_counter_key)
+				str := ServiceAlerts(output, servicename, node, address, status, checkid,id)
+                                alter_counter_value := "[" + alertdate + "]" + "@" + str
+                                alerts_key_value := now_alerts
+				if iscs{
+					alert_counter_key = _alert_counter_key + strconv.FormatInt(alertid,10)
+		                	alerts_key = _alerts_key + strconv.FormatInt(alertid,10)
+				}else{
+					alert_counter_key = _alert_counter_key + strconv.FormatInt(alertid,10)
+		                	alerts_key = _alerts_key + strconv.FormatInt(alertid,10)
+				}
+                                err = PutKv(servicename, alert_counter_key, alter_counter_value, kv)
+                                if err != nil {
+                                	log.Errorf("Put %s failed!", alert_counter_key, err)
+                                        break
+                                }
+				
+                                err = PutKv(servicename,alerts_key,alerts_key_value,kv)
+                                if err != nil {
+                                	log.Errorf("Put %s failed!",alerts_key,err)
+                                        break
+                               	}	
 			}
+		}else {
+			alertid :=time.Now().UnixNano()
+			id, alertdate := GetNowTime()
+			log.Infof("cs or service:",alertid,alertdate,_alert_counter_key)
+			str := ServiceAlerts(output, servicename, node, address, status, checkid,id)
+                        alert_counter_value := "[" + alertdate + "]" + "@" + str
+                        alerts_key_value := now_alerts
+			if iscs{
+                                        alert_counter_key = _alert_counter_key + strconv.FormatInt(alertid,10)
+                                        alerts_key = _alerts_key + strconv.FormatInt(alertid,10)
+                        }else{                                        
+					alert_counter_key = _alert_counter_key + strconv.FormatInt(alertid,10)
+                                        alerts_key = _alerts_key + strconv.FormatInt(alertid,10)
+                        }
+                        err = PutKv(servicename, alert_counter_key, alert_counter_value, kv)
+                        if err != nil {
+                                log.Errorf("Put %s failed!", alert_counter_key, err)
+                                break
+                        }
+
+                        err = PutKv(servicename,alerts_key,alerts_key_value,kv)
+                        if err != nil {
+                                log.Errorf("Put %s failed!",alerts_key,err)
+                                break
+                        }
 		}
 	}
 }
 
-func ServiceAlerts(output, servicename, node, address, status, checkid string) {
+func ServiceAlerts(output, servicename, node, address, status, checkid string,alertid int64) string{
 	if strings.Contains(output, "haproxy") {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " haproxy service " + status)
+		log.MyLoGGer(alertid).Println("[ERROR]: [" + servicename + "] " + node + " " + address + " haproxy service " + status)
+		str := "[ERROR]: ["  + servicename + "] " + node + " " + address + "  haproxy service " + status
+		return str
 	} else if strings.Contains(output, "keepalived") {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " keepalived service " + status)
+		log.MyLoGGer(alertid).Println("[ERROR]: [" + servicename + "] " + node + " " + address + " keepalived service " + status)
+		str := "[ERROR]: [" + servicename + "] " + node + " " + address + " keepalived service " + status
+		return str
 	} else if strings.Contains(output, "consul-template") {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " consul-template service " + status)
+		log.MyLoGGer(alertid).Println("[ERROR]: [" + servicename + "] " + node + " " + address + " consul-template service " + status)
+		str := "[ERROR]: [" + servicename + "] " + node + " " + address + " consul-template service " + status
+		return str
 	} else if status == "warning" {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " replication IO_thread " + status)
-	} else if checkid == "serfHealth" {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " consul service " + output + " " + status)
+		log.MyLoGGer(alertid).Println("[ERROR]: [" + servicename + "] " + node + " " + address + " replication IO_thread " + output + " " + status)
+		str := "[ERROR]: [" + servicename + "] " + node + " " + address + " " + output + " " + status
+		return str
 	} else {
-		log.MyLoGGer().Println("[ERROR]: [" + servicename + "] " + node + " " + address + " " + status)
+		log.MyLoGGer(alertid).Println("[ERROR]: [" + servicename + "] " + node + " " + address + " " + output + " " + status)
+		str := "[ERROR]: [" + servicename + "] " + node + " " + address + " " + output + " " + status
+		return str
 	}
+}
+
+func NowAlerts(output, servicename, node, address, status, checkid string) string {
+        if strings.Contains(output, "haproxy") {
+                str := "[ERROR]: ["  + servicename + "] " + node + " " + address + "  haproxy service " + status
+                return str
+        } else if strings.Contains(output, "keepalived") {
+                str := "[ERROR]: [" + servicename + "] " + node + " " + address + " keepalived service " + status
+                return str
+        } else if strings.Contains(output, "consul-template") {
+                str := "[ERROR]: [" + servicename + "] " + node + " " + address + " consul-template service " + status
+                return str
+        } else if status == "warning" {
+                str := "[ERROR]: [" + servicename + "] " + node + " " + address + " " + output + " " + status
+                return str
+        } else {
+                str := "[ERROR]: [" + servicename + "] " + node + " " + address + " " + output + " " + status
+                return str
+        }
 }
 
 func PareInfo(a_string string) (string, string, string, string) {

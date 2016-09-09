@@ -3,7 +3,6 @@ package check
 import (
 	"database/sql"
 	"fmt"
-//	"log"
 	"strconv"
 	"time"
 
@@ -15,7 +14,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	db, err := Conn(user, password, ip, port, defaultDb, timeout)
 	if err != nil {
 		if checktime == 1{
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -23,7 +22,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	err = SetMysql(db, "set sql_log_bin=0;")
 	if err != nil {
 		if checktime == 1{
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -31,7 +30,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	err = SetMysql(db, "set innodb_lock_wait_timeout=3;")
 	if err != nil {
 		if checktime == 1 {
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -39,7 +38,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	err = SetMysql(db, "set lock_wait_timeout=3;")
 	if err != nil {
 		if checktime == 1{
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -47,7 +46,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	tx, err := Tx(db)
 	if err != nil {
 		if checktime == 1{ 
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -55,7 +54,7 @@ func CheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,checkt
 	err = MysqlOperation(tx)
 	if err != nil {
 		if checktime == 1{
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -69,7 +68,7 @@ func SelectCheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,
 	db, err := Conn(user, password, ip, port, defaultDb, timeout)
 	if err != nil {
 		if checktime == 1{
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -78,7 +77,7 @@ func SelectCheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,
 	err = ExecSelect(db)
 	if err != nil {
 		if checktime == 1 {
-			fmt.Println(err)
+			fmt.Print(err)
 		}
 		MYSQL_OK = 1
 		return MYSQL_OK
@@ -90,13 +89,11 @@ func SelectCheckMysqlHealth(user, password, ip, port, defaultDb, timeout string,
 func ExecSelect(db *sql.DB) error {
 	row, err := db.Query("select cmha_name from cmha_check;")
 	if err != nil {
-		//log.Println("select cmha_name from cmha_check error", err)
 		return err
 	}
 	defer row.Close()
 	err = row.Err()
 	if err != nil {
-		//log.Println("row select cmha_name from cmha_check error", err)
 		return err
 	}
 	return nil
@@ -107,16 +104,12 @@ func Conn(user, password, ip, port, defaultDb, t string) (*sql.DB, error) {
 	time_duration := time.Duration(time_int) * time.Second
 	_t := time_duration
 	openstr := user + ":" + password + "@tcp(" + ip + ":" + port + ")/" + defaultDb + "?timeout=" + _t.String()
-	//log.Println("openstr:", openstr)
-	//	db, err := sql.Open("mysql", user + ":" + password + "@tcp(" + ip + ":" + port + ")/" + defaultDb+"?timeout="+_t.String())
 	db, err := sql.Open("mysql", openstr)
 	if err != nil {
-		//	log.Println("sql.Open error:", err)
 		return nil, err
 	}
 	err = db.Ping()
 	if err != nil {
-		//log.Println("db.Ping error:", err)
 		return nil, err
 	}
 	return db, nil
@@ -125,7 +118,6 @@ func Conn(user, password, ip, port, defaultDb, t string) (*sql.DB, error) {
 func Tx(db *sql.DB) (*sql.Tx, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		//log.Fatalln(err)
 		return nil, err
 	}
 	return tx, nil
@@ -134,13 +126,11 @@ func Tx(db *sql.DB) (*sql.Tx, error) {
 func SetMysql(db *sql.DB, sqlstr string) error {
 	log_bin, err := db.Query(sqlstr)
 	if err != nil {
-		//log.Println("error:", sqlstr)
 		return err
 	}
 	defer log_bin.Close()
 	err = log_bin.Err()
 	if err != nil {
-		//log.Println("error:", sqlstr)
 		return err
 	}
 	return nil
@@ -149,28 +139,23 @@ func SetMysql(db *sql.DB, sqlstr string) error {
 func MysqlOperation(tx *sql.Tx) error {
 	err := MysqlExec(tx, "select cmha_name from cmha_check;")
 	if err != nil {
-		//log.Println("select:", err)
 		tx.Rollback()
 		return err
 	}
 	err = MysqlExec(tx, "delete from cmha_check;")
 	if err != nil {
-		//log.Println("delete:", err)
 		tx.Rollback()
 		return err
 	}
 	nowtime_string := GetNowTime()
 	insertstr := "insert into cmha_check(id,cmha_name,create_time) values(1,'cmha_check_insert','" + nowtime_string + "');"
-//	log.Println("insetstr", insertstr)
 	err = MysqlExec(tx, insertstr)
 	if err != nil {
-		//log.Println("insert:", err)
 		tx.Rollback()
 		return err
 	}
 	err = MysqlExec(tx, "update cmha_check set cmha_name='cmha_check_update' where id=1;")
 	if err != nil {
-		//log.Println("update:", err)
 		tx.Rollback()
 		return err
 	}
@@ -188,12 +173,10 @@ func GetNowTime() string {
 func MysqlExec(tx *sql.Tx, sqlstr string) error {
 	stmt, err := tx.Query(sqlstr)
 	if err != nil {
-		//	log.Println(err)
 		return err
 	}
 	err = stmt.Err()
 	if err != nil {
-		//	log.Println(err)
 		return err
 	}
 	defer stmt.Close()

@@ -1,0 +1,35 @@
+#!/bin/sh 
+
+projectname="cmha-cli"
+
+
+[[ -e src ]] || mkdir -v src
+
+pushd src 
+if [ $? -eq 0 ]
+then 
+    if [ -e "${projectname}" ] 
+    then
+       rm -rf  ${projectname}
+    fi 
+    
+    git clone http://192.168.122.1/cgit/${projectname}
+    
+    cd "${projectname}" 
+
+    git checkout dev-newformat
+
+    git pull -vv
+    
+    make
+fi
+popd
+
+pushd bin
+
+md5sum cmha-cli > md5sum-cmha-cli
+
+rsync -rzv cmha-cli root@192.168.200.135:/opt/cmha-cli/
+rsync -rzv md5sum-cmha-cli root@192.168.200.135:/opt/cmha-cli/
+
+popd

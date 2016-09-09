@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	//	"reflect"
 	"time"
 
 	"github.com/astaxie/beego"
@@ -16,35 +14,18 @@ var port string
 var username string
 var password string
 var servicename string
-var service_ip []string
+var address string
 
-func SetConn() {
-	hostname = beego.AppConfig.String("hostname")
-	other_hostname = beego.AppConfig.String("otherhostname")
-	ip = beego.AppConfig.String("ip")
-	port = beego.AppConfig.String("port")
-	username = beego.AppConfig.String("username")
-	password = beego.AppConfig.String("password")
-	servicename = beego.AppConfig.String("servicename")
-	service_ip = beego.AppConfig.Strings("service_ip")
-	leader := "cmha/service/" + servicename + "/db/leader"
-	//Config is used to configure the creation of a client
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("datacenter"),
-		Token:      beego.AppConfig.String("token"),
-	}
+func SetConn(client *consulapi.Client) {
+	hostname,other_hostname = ReadHostConf()
+	ip,port,username,password = ReadDatabaseConf()
+	servicename = ReadServiceConf()
+	address =ReadCaConf()
+	leader,last_leader := ReturnLeaderAndLastLeader()
 	var kvPair *consulapi.KVPair
-	var client *consulapi.Client
 	var kv *consulapi.KV
 	var err error
-	for i, _ := range service_ip {
-		config.Address = service_ip[i] + ":" + beego.AppConfig.String("service_port")
-		client, err = consulapi.NewClient(config)
-		if err != nil {
-			beego.Error("Create a consul-api client failure!", err)
-			return
-		}
-		beego.Info("Create a consul-api client success!")
+	for i := 0; i < 3; i++ {
 		//KV is used to return a handle to the K/V apis
 		kv = client.KV()
 		//Get is used to lookup a single key
@@ -55,31 +36,20 @@ func SetConn() {
 		}
 		break
 	}
-	var put string
-	put = "0"
-	kvvalue := []byte(put)
-	kvhostname := consulapi.KVPair{
-		Key:   "cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter",
-		Value: kvvalue,
-	}
-	kvotherhostname := consulapi.KVPair{
-		Key:   "cmha/service/" + servicename + "/db/" + other_hostname + "/repl_err_counter",
-		Value: kvvalue,
-	}
-	_, err = kv.Put(&kvhostname, nil)
+	kvvalue := PutValue()
+	kvhostname,kvhostnamekey :=GetRepl(servicename,hostname,kvvalue)
+	kvotherhostname,kvotherhostnamekey := GetRepl(servicename,other_hostname,kvvalue)
+	err =Put(&kvhostname,kvhostnamekey,kv)
 	if err != nil {
-		beego.Error("cmha/service/"+servicename+"/db/"+hostname+"/repl_err_counter put failure!", err)
+		beego.Error("Put failed:",kvhostnamekey,err)
 		return
 	}
-	beego.Info("cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter put success!")
-	_, err = kv.Put(&kvotherhostname, nil)
-	if err != nil {
-		beego.Error("cmha/service/"+servicename+"/db/"+other_hostname+"/repl_err_counter put failure!", err)
-		return
-	}
-	beego.Info("cmha/service/" + servicename + "/db/" + hostname + "/repl_err_counter put success!")
+	err =Put(&kvotherhostname,kvotherhostnamekey,kv)
+        if err != nil {
+                beego.Error("Put failed:",kvotherhostnamekey,err)
+                return
+        }
 	//NewClient returns a new client
-	beego.Info("Get a " + leader + " key success!")
 	if kvPair == nil {
 		beego.Error(leader + "not found, please create the key!")
 		return
@@ -90,73 +60,36 @@ func SetConn() {
 		time.Sleep(1000)
 		return
 	}
-	//Health returns a handle to the health endpoints
-	health := client.Health()
-	//Checks is used to return the checks associated with a service
-	healthvalue, _, err := health.Checks(servicename, nil)
+	islocal,err :=HealthCheck(servicename,hostname,client)
 	if err != nil {
-		beego.Error("Return to service-related checks failure!", err)
+		beego.Error("HealthCheck failed:",err)
 		return
-	}
-	if len(healthvalue) <= 0 {
-		beego.Info("Without this service, or service is not a healthy state!")
-		return
-	}
-	var islocal bool
-	for index := range healthvalue {
-		fmt.Println(healthvalue[index].Node, hostname)
-		if healthvalue[index].Node == hostname {
-			islocal = true
-			beego.Info("Native " + servicename + " service is healthy!")
-			break
-		}
-
 	}
 	if !islocal {
 		beego.Info("Native " + servicename + " service unhealthy or the service does not exist!")
 		return
 	} else {
-		//Session returns a handle to the session endpoints
-		session := client.Session()
-		sessionEntry := consulapi.SessionEntry{
-			LockDelay: 10 * time.Second,
-			Name:      servicename,
-			Node:      hostname,
-			Checks:    []string{"serfHealth", "service:" + servicename},
-		}
-		//Create makes a new session. Providing a session entry can customize the session. It can also be nil to use defaults.
-		sessionvalue, _, err := session.Create(&sessionEntry, nil)
+		sessionvalue,err :=CreateSession(servicename,hostname,client)
 		if err != nil {
-			beego.Error("Session creation failure!", err)
+			beego.Error("CreateSessiob failed:",err)
 			return
 		}
-		format := beego.AppConfig.String("format")
-		var acquirejson string
-		if format == "json" {
-			acquirejson = `{"Node":"` + hostname + `","Ip":"` + ip + `","Port":` + port + `,"Username":"` + username + `","Password":"` + password + `"}`
-		} else if format == "hap" {
-			acquirejson = "server" + " " + hostname + " " + ip + ":" + port
-		} else {
-			beego.Error("format error!")
-			return
-		}
-		value := []byte(acquirejson)
-		kvpair := consulapi.KVPair{
-			Key:     leader,
-			Value:   value,
-			Session: sessionvalue,
-		}
-		//Acquire is used for a lock acquisiiton operation. The Key, Flags, Value and Session are respected. Returns true on success or false on failures.
-		ok, _, err := kv.Acquire(&kvpair, nil)
+		format := ReadFormat()
+		ok,err :=SessionAcquireLeader(format,hostname,ip,port,username,password,leader,sessionvalue,kv)
 		if err != nil {
-			beego.Error("Set the connection string master failure!", err)
+			beego.Error("SessionAcquireLeader failed:",err)
 			return
 		}
 		if !ok {
 			beego.Error("kv acquire failure!")
 			return
 		} else {
-			beego.Info("kv acquire success!")
+			leadervalue := "server" + " " + hostname + " " + ip + ":" + port
+			err = PutLastLeader(leadervalue,last_leader,kv)		
+			if err != nil {
+				beego.Error("PutLastLeader failed:",last_leader,err)
+				return
+			}
 		}
 	}
 }

@@ -20,7 +20,13 @@ var (
 )
 
 func main() {
-
+	args := os.Args[1:]
+	for _, arg := range args {
+		if arg == "-v" || arg == "--version" {
+			fmt.Println("1.1.5-Beta.16")
+			return
+		}
+	}
 	flag.Parse()
 	if *Debug {
 		log.ConfigLevel("debug")
@@ -36,7 +42,28 @@ func main() {
 			os.Exit(-1)
 		}
 	}
-	alert_boot := beego.AppConfig.String("alert_boot")
+	_, _, adress := alerts.GetConf()
+        config := alerts.GetConfig(adress)
+        var err error
+        client, err := alerts.GetClient(config)
+        if err != nil {
+                log.Error(err)
+                os.Exit(-1)
+        }
+	kv := alerts.ReturnKv(client)
+	key := "cmha/service/" + *ServiceFlag + "/alerts/alert_boot"
+	fmt.Println("key:",key)
+	kvPair,err :=alerts.GetKv(key,kv)
+	if err != nil {
+		log.Error(err)
+		os.Exit(-1)
+	}
+	if kvPair.Value == nil {
+		log.Error("please set alert_boot")
+		os.Exit(-1)
+	}
+	alert_boot := string(kvPair.Value)
+//	alert_boot := beego.AppConfig.String("alert_boot")
 
 	if alert_boot != "enable" {
 		os.Exit(0)
@@ -49,11 +76,6 @@ func main() {
 		os.Exit(0)
 	}
 	log.Infof("[INFO]: %s alerts Handler Triggered", *ServiceFlag)
-/*	logfile, err := log.AlertFile()
-	if err != nil {
-		log.Errorf("%s\r\n", err.Error())
-		os.Exit(-1)
-	}*/
 
 	logfile, err := os.OpenFile(logfile_path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0)
 	if err != nil {

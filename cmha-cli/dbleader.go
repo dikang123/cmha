@@ -2,43 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	consulapi "github.com/hashicorp/consul/api"
+
+	"github.com/upmio/cmha-cli/cliconfig"
 )
 
 func DbLeader(args ...string) error {
 	if len(args) > 0 {
-		config := &consulapi.Config{
-			Datacenter: beego.AppConfig.String("cmha-datacenter"),
-			Token:      beego.AppConfig.String("cmha-token"),
-			Address:    beego.AppConfig.String("cmha-server-ip") + ":8500",
-		}
-		/*config := &consulapi.Config{
-			Datacenter: beego.AppConfig.String("cmha-datacenter"),
-			Token:      beego.AppConfig.String("cmha-token"),
-		}
-		var kv *consulapi.KV
-		var keys *consulapi.KVPair
-		for i, _ := range service_ip {
-			config.Address = service_ip[i] + ":" + beego.AppConfig.String("cmha-server-ip")
-			client, err := consulapi.NewClient(config)
-			if err != nil {
-				fmt.Println("dbleader Create consul-api client failure!", err)
-				continue
-			}
-			kv := client.KV()
-			keys, _, err := kv.Keys("", "", nil)
-			if err != nil {
-				fmt.Println("dbleader get keys failure!", err)
-				continue
-			}
-			if keys == nil {
-				fmt.Println("dbleader not kv!")
-				continue
-			}
-			break
-		}*/
-		client, err := consulapi.NewClient(config)
+
+		client, err := cliconfig.Consul_Client_Init()
+
 		if err != nil {
 			fmt.Println("dbleader Create consul-api client failure!", err)
 			return err
@@ -53,10 +25,9 @@ func DbLeader(args ...string) error {
 			fmt.Println("dbleader not kv!")
 			return nil
 		}
-		key := "service/" + args[0] + "/leader"
+		key := "cmha/service/" + args[0] + "/db/leader"
 		var iskey = false
 		for value := range keys {
-			//fmt.Println(key, keys[value])
 			if key == keys[value] {
 				iskey = true
 				break
@@ -83,12 +54,9 @@ func DbLeader(args ...string) error {
 		fmt.Println("----------------------------------------")
 		return nil
 	}
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("cmha-datacenter"),
-		Token:      beego.AppConfig.String("cmha-token"),
-		Address:    beego.AppConfig.String("cmha-server-ip") + ":8500",
-	}
-	client, err := consulapi.NewClient(config)
+
+	client, err := cliconfig.Consul_Client_Init()
+
 	if err != nil {
 		fmt.Println("dbleader Create consul-api client failure!", err)
 		return err
@@ -105,7 +73,7 @@ func DbLeader(args ...string) error {
 			var key string
 			fmt.Println("----------------------------------------")
 			fmt.Println("      ", k)
-			key = "service/" + k + "/leader"
+			key = "cmha/service/" + k + "/db/leader"
 			kvpair, _, err := kv.Get(key, nil)
 			if err != nil {
 				fmt.Println("dbleader Get key failure!", err)

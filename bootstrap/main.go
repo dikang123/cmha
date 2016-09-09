@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 func init() {
@@ -19,11 +20,19 @@ func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-			fmt.Println("1.1.5-Beta.1")
+			fmt.Println("1.1.5-Beta.4")
 			return
 		} else {
 			return
 		}
 	}
-	SetConn()
+	address := ReadCaConf()	
+	//Config is used to configure the creation of a client
+        config := ReturnConsulConfig(address)
+	client, err := consulapi.NewClient(config)
+        if err != nil {
+         	beego.Error("Create a consul-api client failure!", err)
+                return
+        }	
+	SetConn(client)
 }

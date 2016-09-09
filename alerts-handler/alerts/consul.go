@@ -25,24 +25,21 @@ func GetClient(config *consulapi.Config) (*consulapi.Client, error) {
 	return client, nil
 }
 
+
 func ReturnKv(client *consulapi.Client) *consulapi.KV {
 	kv := client.KV()
 	return kv
 }
 
-func GetServiceNameLeader(servicename string) string {
-	key := servicename + "_leader"
-	return key
-}
 
 func GetLeaderKey(servicename string) string {
-	leader_key := "service/" + servicename + "/leader"
+	leader_key := "cmha/service/" + servicename + "/db/leader"
 	return leader_key
 
 }
 
 func GetLastLeaterKey(servicename string) string {
-	last_leader := "cmha/" +servicename +"/last_leader"
+	last_leader := "cmha/service/" + servicename + "/db/last_leader"
 	return last_leader
 }
 
@@ -68,11 +65,6 @@ func ConsulGetAndPutKv(leader_key,last_leader, servicename string, kv *consulapi
 		log.Errorf("Get leader failed!", err)
 		return "", "", err
 	}
-/*	err = PutKv(servicename, key, "", kv)
-	if err != nil {
-		log.Errorf("Put last leader failed!", err)
-		return "", "", err
-	}*/
 	kvValue := string(kvPair.Value)
 	last_leaders, err := GetKv(last_leader, kv)
 	if err != nil {

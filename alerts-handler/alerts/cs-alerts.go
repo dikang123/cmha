@@ -13,11 +13,9 @@ import (
 var client *consulapi.Client
 
 func CsAlerts(servicename string) {
-	log.Info("cs")
 	var catalog *consulapi.Catalog
 	var kv *consulapi.KV
-	log.Infof("CsAlerts")
-	var C_time = time.Now().Unix()
+	C_time := time.Now().Unix()
 	var timeLayout = "2006-01-02 15:04:05"
 	var dataTimeStr = time.Unix(C_time, 0).Format(timeLayout)
 	ips := beego.AppConfig.String("ip")

@@ -11,10 +11,8 @@ import (
 )
 
 func IsDbOrChap(servicename string) {
-	log.Info("service")
-	var C_time = time.Now().Unix()
+	C_time := time.Now().Unix()
 
-	log.Infof("C_time:%d test", C_time)
 	var timeLayout = "2006-01-02 15:04:05"
 	var dataTimeStr = time.Unix(C_time, 0).Format(timeLayout)
 	var err error
@@ -36,7 +34,7 @@ func IsDbOrChap(servicename string) {
 	var health *consulapi.Health
 	client, err := consulapi.NewClient(config)
 	if err != nil {
-		log.MyLoGGer().Println("[E] Create consul-api client failed!", err)
+		log.Errorf("Create consul-api client failed!", err)
 		return
 	}
 	health = client.Health()
@@ -46,8 +44,6 @@ func IsDbOrChap(servicename string) {
 		log.Errorf("err", err)
 		return
 	}
-	//	var addr, types, hostname string
-	//	var status string
 	for index := range healthpair {
 		for checkindex := range healthpair[index].Checks {
 			if healthpair[index].Checks[checkindex].Status == "warning" {

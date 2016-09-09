@@ -2,17 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	consulapi "github.com/hashicorp/consul/api"
+
+	"github.com/upmio/cmha-cli/cliconfig"
 )
 
 func CheckDeployment(args ...string) error {
-	config := &consulapi.Config{
-		Datacenter: beego.AppConfig.String("cmha-datacenter"),
-		Token:      beego.AppConfig.String("cmha-token"),
-		Address:    beego.AppConfig.String("cmha-server-ip") + ":8500",
-	}
-	client, err := consulapi.NewClient(config)
+
+	client, err := cliconfig.Consul_Client_Init()
+
 	if err != nil {
 		fmt.Println("deploymnet.go Create consul-api client failure!", err)
 		return err
@@ -31,7 +28,7 @@ func CheckDeployment(args ...string) error {
 		if k != "consul" {
 			var ishealth = true
 			var key string
-			key = "service/" + k + "/leader"
+			key = "cmha/service/" + k + "/db/leader"
 			kvpair, _, err := kv.Get(key, nil)
 			if err != nil {
 				fmt.Println("deployment.go Get key failure!", err)

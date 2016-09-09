@@ -19,7 +19,7 @@ func IsCsLeader() bool {
 	}
 	client, err := consulapi.NewClient(config)
 	if err != nil {
-		log.MyLoGGer().Println("[E] Create consul-api client failed!", err)
+		log.Errorf("Create consul-api client failed!", err)
 		return false
 	}
 	state := client.Status()
