@@ -51,6 +51,45 @@ func PurgeLog(_service string, _node string, _logtype string, _timestamps ...str
 
 }
 
+func PurgeAlertLog(_service string, _logtype string, _timestamps ...string) error {
+
+        if len(_timestamps) > 0 {
+                if len(_timestamps) == 1 {
+                        if len(_timestamps[0]) == 39 {
+
+                                _ids := strings.Split(_timestamps[0], ",")
+
+                                if len(_ids) != 2 {
+
+                                        err := errors.New(fmt.Sprintf("%s is not a valid log id.", _timestamps[0]))
+                                        return err
+
+                                }
+
+                                purge_logs(_service, "", _logtype, _ids[0], _ids[1])
+
+                        } else {
+
+                                err := errors.New(fmt.Sprintf("%s is not a valid log id.", _timestamps[0]))
+                                return err
+
+                        }
+
+                } else {
+
+                        for _, logtimestamp := range _timestamps {
+                                purge_a_log(_service, "", _logtype, logtimestamp)
+                        }
+                }
+
+        } else {
+                purge_all_logs(_service, "", _logtype)
+        }
+
+        return nil
+
+}
+
 func purge_logs(service string, node string, logtype string, _from string, _to string) {
 
 	time_from, err_from := StringToInt(_from)
@@ -75,8 +114,12 @@ func purge_logs(service string, node string, logtype string, _from string, _to s
 	}
 
 	kv := client.KV()
-
-	_key := fmt.Sprintf("%s/%s/%s/", service, node, logtype)
+	var _key string
+	if logtype == LOG_ALERT {
+		_key = fmt.Sprintf("%s/%s/%s/%s/%s/", "cmha","service",service,"alerts", logtype)
+	}else{
+		_key = fmt.Sprintf("%s/%s/%s/%s/%s/%s/", "cmha","service",service,"log",node, logtype)
+	}
 
 	logs, _, _err := kv.List(_key, nil)
 	if _err != nil {
@@ -103,8 +146,11 @@ func purge_logs(service string, node string, logtype string, _from string, _to s
 
 		return
 	}
-
-	fmt.Printf("No %s log on %s/%s\n", logtype, service, node)
+	if logtype == LOG_ALERT{
+		fmt.Printf("No %s log on %s\n", logtype, service)
+	}else{
+		fmt.Printf("No %s log on %s/%s\n", logtype, service, node)
+	}
 	fmt.Println()
 
 }
@@ -119,8 +165,13 @@ func purge_all_logs(service string, node string, logtype string) {
 	}
 
 	kv := client.KV()
-
-	_key := fmt.Sprintf("%s/%s/%s/", service, node, logtype)
+		
+	var _key string
+	if logtype == LOG_ALERT {
+		_key = fmt.Sprintf("%s/%s/%s/%s/%s/","cmha","service",service,"alerts",logtype)
+	}else {
+		_key = fmt.Sprintf("%s/%s/%s/%s/%s/%s/","cmha","service",service,"log",node, logtype)
+	}
 
 	logs, _, _err := kv.List(_key, nil)
 	if _err != nil {
@@ -139,10 +190,12 @@ func purge_all_logs(service string, node string, logtype string) {
 
 		return
 	}
-
-	fmt.Printf("No %s log on %s/%s\n", logtype, service, node)
+	if logtype == LOG_ALERT {
+		fmt.Printf("No %s log on %s\n", logtype, service)
+	}else{
+		fmt.Printf("No %s log on %s/%s\n", logtype, service, node)
+	}
 	fmt.Println()
-
 }
 
 func purge_a_log(service string, node string, logtype string, _timestamp string) {
@@ -158,7 +211,13 @@ func purge_a_log(service string, node string, logtype string, _timestamp string)
 
 	_id := _timestamp
 
-	_key := fmt.Sprintf("%s/%s/%s/%s", service, node, logtype, _id)
+	var _key string
+	if logtype == LOG_ALERT {
+		 _key = fmt.Sprintf("%s/%s/%s/%s/%s/%s", "cmha","service",service,"alerts", logtype, _id)
+	}else{
+		 _key = fmt.Sprintf("%s/%s/%s/%s/%s/%s/%s", "cmha","service",service,"log", node, logtype, _id)
+	} 
+
 
 	if _, err := kv.Delete(_key, nil); err != nil {
 		fmt.Printf("err: %v\n", err)

@@ -32,6 +32,7 @@ const (
 const (
 	LOG_MHA     string = "mha-handlers"
 	LOG_MONITOR string = "monitor-handlers"
+	LOG_ALERT string = "alerts_counter"
 )
 
 func TableRender(theader []string, _data [][]string, align int) {

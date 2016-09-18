@@ -81,6 +81,8 @@ func help(args ...string) {
 				"purge monitorlog | <hostname> <all> | Drop host all monitor-logs",
 				"purge monitorlog | <hostname> <logid> | Drop host a monitor-log",
 				"purge monitorlog | <hostname> <logidfrom,logidto> | Drop host some monitor-logs",
+				"purge alerts | <all> | Drop all alerts-logs",
+				"purge alerts  | <logidfrom,logidto> | Drop alerts-logs",
 			}
 
 			helpFormat(args[0], help_purge)

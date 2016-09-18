@@ -12,7 +12,7 @@ import (
 
 var (
 	service_ip              []string
-	VERSION                 = "1.1.5-Beta.12"
+	VERSION                 = "1.1.5-Beta.13"
 	Prog                    = "CMHA CLI"
 	history_file            = ".cmha-cli.history"
 	max_number_history_line = 300
@@ -318,12 +318,25 @@ func main() {
 				help("use")
 				continue
 			}
+			if len(fields) == 1{
+                        	help(fields[0])
+                                continue
 
-			if len(fields) < 4 {
+			}
+			if fields[1] == "alerts"{
+				if len(fields) < 3 {
 
-				help(fields[0])
-				continue
+					help(fields[0])
+					continue
 
+				}
+			}else{
+				if len(fields) < 4 {
+
+					help(fields[0])
+					continue
+
+				}
 			}
 
 			var logtype string
@@ -334,31 +347,59 @@ func main() {
 			} else if fields[1] == "monitorlog" {
 
 				logtype = LOG_MONITOR
-			} else {
+			}else if fields[1] == "alerts" {
+				logtype = LOG_ALERT
+			}else {
 				help(fields[0])
 				continue
 			}
+			var _timestamps []string
+			var node_name string
+			if logtype == LOG_ALERT {
+				_timestamps = fields[2:]
+			}else{
+				node_name = fields[2]
 
-			node_name := fields[2]
-
-			_timestamps := fields[3:]
+				_timestamps = fields[3:]
+			}
 
 			if _timestamps[0] == "all" {
+				
+				if logtype == LOG_ALERT{
+					if err := PurgeAlertLog(service_name,logtype); err != nil {
+						fmt.Printf("\n%s\n", err.Error())
+                                                help(fields[0])
+                                                continue
+					}
 
-				if err := PurgeLog(service_name, node_name, logtype); err != nil {
+				}else{
+					if err := PurgeLog(service_name, node_name, logtype); err != nil {
 
-					fmt.Printf("\n%s\n", err.Error())
-					help(fields[0])
-					continue
+						fmt.Printf("\n%s\n", err.Error())
+						help(fields[0])
+						continue
+					}	
 				}
 
 			} else {
-
-				if err := PurgeLog(service_name, node_name, logtype, _timestamps...); err != nil {
-
-					fmt.Printf("\n%s\n", err.Error())
-					help(fields[0])
-					continue
+				if logtype == LOG_ALERT{
+					if len(_timestamps[0]) == 39 {
+						if err := PurgeAlertLog(service_name,logtype,_timestamps...); err != nil {
+                                                	fmt.Printf("\n%s\n", err.Error())
+                                                	help(fields[0])
+                                                	continue
+                                        	}
+					}else{
+                                                help(fields[0])
+                                                continue
+					}
+				}else{
+					if err := PurgeLog(service_name, node_name, logtype, _timestamps...); err != nil {
+	
+						fmt.Printf("\n%s\n", err.Error())
+						help(fields[0])
+						continue
+					}
 				}
 
 			}
