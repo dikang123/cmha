@@ -24,7 +24,7 @@ func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-			fmt.Println("1.1.5-Beta.4")
+			fmt.Println("1.1.5-Beta")
 			return
 		} else {
 			return

@@ -14,14 +14,24 @@ frequency=`grep -w "frequency" $config_file|awk -F= '{print $2}'|sed 's/[ ]//g'`
 put_alert_kv(){
 alerts_id=`date +%s%N`
 e_time=`date "+%Y-%m-%d %H:%M:%S"`
-curl -X PUT -d "[$e_time]@[ERROR]: $error_code" http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/alerts/alerts_counter/$alerts_id
+curl -X PUT -d "[$e_time]@[$1]: $error_code" http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/alerts/alerts_counter/$alerts_id
 }
-
-monitor_kv_alerts(){
-	for Node in `curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/repl_err_counter?keys|jq '.'|awk -F'"' '{print $2}'|sed '/^$/d'|awk -F'/' '{print $6}'`
+role_kv_alerts(){
+  	for Node in `curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/chap/role?keys|/usr/local/bin/jq '.'|awk -F'"' '{print $2}'|sed '/^$/d'|awk -F'/' '{print $6}'`
+        do
+	sleep 2
+ 	rs=`curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/chap/role/${Node}?raw`
+        Address=`curl -s -X GET http://${local_ip}:${port}/v1/health/service/${servicename}|/usr/local/bin/jq -c ".[].Node|select(.Node==\"$Node\")"|/usr/local/bin/jq -r .Address`
+	error_code="[$servicename] $Node $Address chap entering $rs state"		
+	put_alert_kv WARN
+        echo "${e_time} [INFO]: ${error_code}" >>$log_file
+done
+}
+repl_err_counter_kv_alerts(){
+	for Node in `curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/repl_err_counter?keys|/usr/local/bin/jq '.'|awk -F'"' '{print $2}'|sed '/^$/d'|awk -F'/' '{print $6}'`
 	do
 		rs=`curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/repl_err_counter/${Node}?raw`
-		Address=`curl -s -X GET http://${local_ip}:${port}/v1/health/service/${servicename}|jq -c ".[].Node|select(.Node==\"$Node\")"|jq -r .Address`
+		Address=`curl -s -X GET http://${local_ip}:${port}/v1/health/service/${servicename}|/usr/local/bin/jq -c ".[].Node|select(.Node==\"$Node\")"|/usr/local/bin/jq -r .Address`
 		error_code="[$servicename] $Node $Address repl_err_counter is 1"
 		if [ $rs -eq 1 ];then
 			if [ -e $base_dir/.${Node}_alerts_counter ];then
@@ -30,19 +40,19 @@ monitor_kv_alerts(){
                         		local L_time=`grep "$c_text" $base_dir/.${Node}_alerts_counter|awk -F'@' '{print $1}'`
                         		local S_time=$(($C_time-$L_time))
                                 	if [ $S_time -gt $frequency ];then
-                                		put_alert_kv
-                                		echo "${e_time} ${error_code}" >>$log_file                        
+                                		put_alert_kv ERROR
+                                		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                        
                                 	    sed -i "s#$L_time@$c_text#${C_time}@$c_text#g" $base_dir/.${Node}_alerts_counter
                                 	fi
 				else					
-					put_alert_kv
-					echo "${e_time} ${error_code}" >>$log_file	
+					put_alert_kv ERROR
+					echo "${e_time} [ERROR]: ${error_code}" >>$log_file	
 					echo "${C_time}@$c_text" >>$base_dir/.${Node}_alerts_counter	
 				fi
         else
 				touch $base_dir/.${Node}_alerts_counter				
-				put_alert_kv
-				echo "${e_time} ${error_code}" >>$log_file                        
+				put_alert_kv ERROR
+				echo "${e_time} [ERROR]: ${error_code}" >>$log_file                        
                 local c_text=`echo "${Node}${Address}${rs}"|md5sum|awk '{print $1}'`
                 echo "${C_time}@$c_text" >>$base_dir/.${Node}_alerts_counter
             fi
@@ -56,12 +66,12 @@ leader_kv_alerts(){
 	local last_leader=`curl -s -X GET http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/last_leader?raw|awk '{print $4,$5,$6}'`
 	if [ "$leader" = "" ];then
 		error_code="[$servicename] MySQL occurs failover,The current leader does not exist"
-		put_alert_kv
-		echo "${e_time} ${error_code}" >>$log_file	
+		put_alert_kv ERROR
+		echo "${e_time} [ERROR]: ${error_code}" >>$log_file	
 	elif [ "$last_leader" = "" ];then
 		error_code="[$servicename] MySQL occurs failover,Leader switch to [$leader]"
-		put_alert_kv		
-		echo "${e_time} ${error_code}" >>$log_file
+		put_alert_kv ERROR	
+		echo "${e_time} [ERROR]: ${error_code}" >>$log_file
 		local d_time=`date +%s`
 		local time_stamp=`date "+%Y-%m-%d %H:%M:%S"`
 		curl -X PUT -d "$time_stamp $d_time $leader" http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/last_leader
@@ -70,8 +80,8 @@ leader_kv_alerts(){
 		local S_time=$(($C_time-$last_time))
 		if [ $S_time -gt 30 ];then	
 			error_code="[$servicename] MySQL occurs failover,Leader from the [$last_leader] switch to [$leader]"
-			put_alert_kv
-		echo "${e_time} ${error_code}" >>$log_file
+			put_alert_kv ERROR
+		echo "${e_time} [ERROR]: ${error_code}" >>$log_file
 		local d_time=`date +%s`
 		local time_stamp=`date "+%Y-%m-%d %H:%M:%S"`
 		curl -X PUT -d "$time_stamp $d_time $leader" http://${local_ip}:${port}/v1/kv/cmha/service/$servicename/db/last_leader
@@ -82,42 +92,42 @@ leader_kv_alerts(){
 service_alerts(){
              if [ "$(echo $Output|grep -w 'haproxy')" ];then
              		error_code="[$servicename] $Node $Address haproxy service $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                    
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                    
              elif [ "$(echo $Output|grep -w 'keepalived')" ];then
              		error_code="[$servicename] $Node $Address keepalived service $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                     
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                     
              elif [ "$(echo $Output|grep -w 'consul-template')" ];then
              		error_code="[$servicename] $Node $Address consul-template service $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                     
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                     
              elif [ "$Status" = "warning" ];then
-             		error_code="[$servicename] $Node $Address replication IO_thread $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                     
+             		error_code="[$servicename] $Node $Address $Output $Status"
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                     
              elif [ "$CheckID" = "serfHealth" ];then
              		error_code="[$servicename] $Node $Address consul service $Output $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                     
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                     
              else
              		error_code="[$servicename] $Node $Address $Output $Status"
-             		put_alert_kv
-             		echo "${e_time} ${error_code}" >>$log_file                    
+             		put_alert_kv ERROR
+             		echo "${e_time} [ERROR]: ${error_code}" >>$log_file                    
              fi
 }
 ################################################
 service_alerts_exec(){
 case $1 in
 	service)
-curl -s -X GET http://${local_ip}:${port}/v1/health/service/${servicename}|jq -c '.[].Checks[]|{Status,CheckID,Node,Output}'|jq -c 'select(.Status=="critical" or .Status=="warning")' >$base_dir/.$$_node_alerts
+curl -s -X GET http://${local_ip}:${port}/v1/health/service/${servicename}|/usr/local/bin/jq -c '.[].Checks[]|{Status,CheckID,Node,Output}'|/usr/local/bin/jq -c 'select(.Status=="critical" or .Status=="warning")' >$base_dir/.$$_node_alerts
 	;;
 	CS)
 	touch $base_dir/.$$_node_alerts
 	for i in `awk -F= '/service_ip/ {print $2}' $config_file|sed 's/[ ]//g'|awk -F';' '{print $1,$2,$3}'` 
 	do
-	node=`curl -s -X GET http://${local_ip}:${port}/v1/catalog/nodes|jq -c ".[]|select(.Address==\"$i\")"|jq -r .Node`
-curl -s -X GET http://${local_ip}:${port}/v1/health/state/critical|jq -c '.[]|{Status,CheckID,Node,Output}'|jq -c "select(.Node==\"$node\")" >>$base_dir/.$$_node_alerts
+	node=`curl -s -X GET http://${local_ip}:${port}/v1/catalog/nodes|/usr/local/bin/jq -c ".[]|select(.Address==\"$i\")"|/usr/local/bin/jq -r .Node`
+curl -s -X GET http://${local_ip}:${port}/v1/health/state/critical|/usr/local/bin/jq -c '.[]|{Status,CheckID,Node,Output}'|/usr/local/bin/jq -c "select(.Node==\"$node\")" >>$base_dir/.$$_node_alerts
 	done
 	;;
 esac
@@ -125,11 +135,11 @@ esac
 if [ ! -z $base_dir/.$$_node_alerts ];then
 	cat $base_dir/.$$_node_alerts |while  read LINE
 	do
-		Status=`echo $LINE|jq -r '.Status'`
-		CheckID=`echo $LINE|jq -r '.CheckID'`
-		Node=`echo $LINE|jq -r '.Node'`
-		Output=`echo $LINE|jq -r '.Output'`
-                Address=`curl -s -X GET http://${local_ip}:${port}/v1/catalog/nodes|jq -c ".[]|select(.Node==\"$Node\")"|jq -r .Address`	
+		Status=`echo $LINE|/usr/local/bin/jq -r '.Status'`
+		CheckID=`echo $LINE|/usr/local/bin/jq -r '.CheckID'`
+		Node=`echo $LINE|/usr/local/bin/jq -r '.Node'`
+		Output=`echo $LINE|/usr/local/bin/jq -r '.Output'`
+                Address=`curl -s -X GET http://${local_ip}:${port}/v1/catalog/nodes|/usr/local/bin/jq -c ".[]|select(.Node==\"$Node\")"|/usr/local/bin/jq -r .Address`	
 		if [ -e $base_dir/.${Node}_alerts_counter ];then
 			c_text=`echo "${Status}${CheckID}${Node}${Address}${Output}"|md5sum|awk '{print $1}'`
 			if [ $(grep "$c_text" $base_dir/.${Node}_alerts_counter) ];then
@@ -162,7 +172,7 @@ if [ "$alert_boot" != "enable" ];then
 	exit 0
 fi
 sleep 5
-cs_leader=`curl -s -X GET http://${local_ip}:${port}/v1/status/leader|jq -r '.'|awk -F: '{print $1}'`
+cs_leader=`curl -s -X GET http://${local_ip}:${port}/v1/status/leader|/usr/local/bin/jq -r '.'|awk -F: '{print $1}'`
 if [ "$cs_leader" != "${local_ip}" ];then
 	exit 0	
 fi
@@ -173,12 +183,16 @@ fi
 
 #echo "$(date "+%Y-%m-%d %H:%M:%S") [INFO]: [$servicename] alerts Handler Triggered" >>$log_file
 if [ $# -eq 2 ];then
-	if [ $kv = "monitor" ];then 
-		monitor_kv_alerts
+	if [ $kv = "repl_err_counter" ];then 
+		repl_err_counter_kv_alerts
 	fi
 	
 	if [ $kv = "leader" ];then
 		leader_kv_alerts
+	fi
+
+	if [ $kv = "role" ];then
+		role_kv_alerts
 	fi
 elif [ $# -eq 1 ];then
 	if [ "$1" = "CS" ];then
