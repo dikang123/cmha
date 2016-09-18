@@ -1,0 +1,103 @@
+set vsr 172.16.100.114 3306 on
+set vsr 172.16.100.113 3306 on
+show info
+set slave_only 172.16.100.113 3306
+set slave_start 172.16.100.113 3306
+show info
+set repl_err_counter cdh113
+set repl_err_counter cdh114
+show info
+show alerts
+show alerts list
+
+show 
+exit
+show clustere
+show cluster
+show info
+use bocop
+show info
+use bocop
+show status
+show cluster
+show info
+show monitor cdh113 
+show monitorlog cdh113 
+show monitorlog cdh113 1472670847,1473344826
+show monitorlog cdh114
+show monitorlog cdh114 1472670845,1473345937
+show info
+set 
+set slave_start 172.16.100.113 3306
+show info
+set repl_err_counter cdh113
+show info
+set slave_stop 172.16.100.113 3306
+show info
+set slave_start 172.16.100.113 3306
+set repl_err_counter cdh113
+show info
+set slave_stop 172.16.100.113 3306
+show info
+show monitorlog cdh114
+show monitorlog cdh114 1473349175
+set slave_start 172.16.100.113 3306
+set repl_err_counter cdh113
+show info
+set slave_stop 172.16.100.113 3306
+show monitorlog cdh114 
+show monitorlog cdh114 1473349878
+show cluster
+exit
+show cluster
+exit
+show cluster
+show status
+use bocop
+show info
+exit
+use bocop
+purg
+purgw
+purge
+use bocop
+purge
+exit
+use bocop
+purge
+purge alerts
+purge alerts all
+purge alerts 1472670877991294933
+use bocop
+purge alerts 1472670877991294933
+purge alerts 1472670877991294933,1472753052180757437
+exit
+use bocop
+purge
+purge alerts 1472670877991294933,1472753052180757437
+purge alerts 1472670877991294933
+exit
+use bocop
+purge
+purge alerts 1472670877991294933,1472753052180757437
+exit
+use bocop
+purge mha
+purge mhalog 
+purge mhalog all
+purge mhalog cdh113 all
+purge mhalog cdh113 1472752064
+purge mhalog cdh113 1472752064,1472754696
+purge mhalog cdh113 1472752064
+ls
+exit
+use bocop
+purge
+purge alerts 1472670877991294933,1472753052180757437
+exit
+use bocop
+purge alerts 1472670877991294933,1472753052180757437
+exit
+use bocop
+purge alerts 1472670877991294933,1472753052180757437
+exit
