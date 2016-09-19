@@ -44,12 +44,12 @@ DB: MySQL instance node (2 nodes for Master-Master configuration)
 * edit auto-deployment.ini in the extracted directory of the binary installer, follow the inline instruction
 * execute deployment-check.sh script to verify the environment and necessary packages
 * run the installer to auto deploy the cluster:
-
->    #sudo auto-deployment.sh cs
->    #sudo auto-deployment.sh ca
->    #sudo auto-deployment.sh db
->    #sudo auto-deployment.sh chap
-
+```
+#sudo auto-deployment.sh cs
+#sudo auto-deployment.sh ca
+#sudo auto-deployment.sh db
+#sudo auto-deployment.sh chap
+```
 * installation verification, use favorite brower, visit http://CS_IP:8500/ui to check the cluster status, see more details from the project wiki page (https://github.com/upmio/cmha/wiki)
 
 ## Contributing
@@ -63,6 +63,8 @@ DB: MySQL instance node (2 nodes for Master-Master configuration)
 ## Get Support 
 Please use our github issues(https://github.com/upmio/cmha/issues) for bugs, feature requests or questions !
 
-## License
-Apache License
+## Licensing
+CMHA is licensed under the Apache License, Version 2.0. See
+[LICENSE](https://github.com/upmio/cmha/blob/master/LICENSE) for the full
+license text.
 
