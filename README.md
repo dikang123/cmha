@@ -32,9 +32,9 @@ CMHA is a rock solid MySQL high availability cluster solution for mission critic
 ###2. Role of cluster nodes
 
 ```
-CS: Consul server for cluster coordinator ( 1 node for testing purpose, 3 nodes for production)
+CS:   Consul server for cluster coordinator ( 1 node for testing purpose, 3 nodes for production)
 CHAP: Application access node (1 node for testing purpose,2 nodes for production)
-DB: MySQL instance node (2 nodes for Master-Master configuration)
+DB:   MySQL instance node (2 nodes for Master-Master configuration)
 ```
 ###3. Install from binary 
 
