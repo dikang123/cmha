@@ -1,4 +1,4 @@
-## CMHA  [![Release](https://img.shields.io/badge/release-v.1.1.5--beta-blue.svg)](https://github.com/upmio/cmha/releases/latest)
+## CMHA:Consul based MySQL High Availability  [![Release](https://img.shields.io/badge/release-v.1.1.5--beta-blue.svg)](https://github.com/upmio/cmha/releases/latest)
 
 CMHA is a rock solid MySQL high availability cluster solution for mission critical use case like financial service and telco.
 
