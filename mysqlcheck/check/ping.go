@@ -36,10 +36,14 @@ func TrySelectCheckTime(user, password, host, port, defaultDb, checktime_string,
 						fmt.Print(err)
 						os.Exit(2)
 					}
+					fmt.Println("isyes:",isyes)
 					if isyes == "Yes" {
 						fmt.Print("check ok")
 						os.Exit(0)
-					} else {
+					} else if isyes == "noreplication"{
+						fmt.Print("replication is not configured")
+						os.Exit(1)
+					}else {
 						fmt.Print("check replication io_thread fail:", isyes)
 						os.Exit(1)
 					}
@@ -74,7 +78,10 @@ func TryUpdateCheckTime(user, password, host, port, defaultDb, checktime_string,
 					if isyes == "Yes" {
 						fmt.Print("check ok")
 						os.Exit(0)
-					} else {
+					}else if isyes == "noreplication"{
+                                                fmt.Print("replication is not configured")
+                                                os.Exit(1)
+                                        }else {
 						fmt.Print("check replication io_thread fail:", isyes)
 						os.Exit(1)
 					}
