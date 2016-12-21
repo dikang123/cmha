@@ -36,7 +36,6 @@ func TrySelectCheckTime(user, password, host, port, defaultDb, checktime_string,
 						fmt.Print(err)
 						os.Exit(2)
 					}
-					fmt.Println("isyes:",isyes)
 					if isyes == "Yes" {
 						fmt.Print("check ok")
 						os.Exit(0)
