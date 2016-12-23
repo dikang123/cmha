@@ -1,5 +1,5 @@
 #!/bin/bash
-######version 1.1.5-beta.1 for put kv to CS########
+######version 1.1.5-Beta.1 for put kv to CS########
 #############2016-08-30####################
 base_dir=/usr/local/cmha/alerts-handler
 config_file=$base_dir/conf/app.conf

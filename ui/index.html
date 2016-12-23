@@ -1,83 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>1.1.5-Beta-1(cmha)</title>
-
-<link rel="stylesheet" href="css/jquery-ui.css" media="screen" type="text/css" />
-<link rel="stylesheet" href="css/bootstrap.css" media="screen" type="text/css" />
- <link rel="stylesheet" href="css/style.css" media="screen" type="text/css" />
-
- 
-<script type="text/javascript"  src="js/jquery.js"></script>
-<script type="text/javascript"  src="js/bootstrap.js"></script>
-<script type="text/javascript"  src="js/jquery.jqGrid.min.js"></script>
-<script type="text/javascript"  src="js/jquery-ui-1.10.3.min.js"></script>
-</head>
-
-<body  onload="load()"> 
-
-<div class="header">
- 
-   <div  class="header-icon"></div>
- 
-
-
-  <div class="header-menu">
-
-
-
-<nav class="navbar  navbar-default navbar-fixed-top header-menu-right" role="navigation"> 
-    <div class="container-fluid"> 
-   
-    <div> 
-        <ul class="nav navbar-nav"> 
-            
-            <li class="dropdown"> 
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown"> 
-                    Dashboards <b class="caret"></b> 
-                </a> 
-                <ul id="dropdown-menu" class="dropdown-menu"> 
-                    <li><a href="#" onclick="indexfunction()">CS</a></li> 
-                    
-                </ul> 
-            </li> 
-
-        </ul> 
-    </div> 
-    </div> 
-</nav>
-
- 
+    <meta charset="UTF-8">
+    <meta name="author" content="zhangdelei<zhangdelei@bsgchina.com>" >
+    <title>CMHA</title><!--cmha 1.1.7 -->
+    <link rel="stylesheet" href="css/jquery-ui.css" media="screen" type="text/css" />
+    <link rel="stylesheet" href="css/bootstrap.css" media="screen" type="text/css" />
+    <link href="css/jquery-accordion-menu.css" rel="stylesheet" type="text/css" />
+    <link href="css/font-awesome.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/ui.jqgrid.css" media="screen" type="text/css"/>
   
+    <link rel="stylesheet" type="text/css" href="css/graph.css">
+    <link rel="stylesheet" href="css/style.css" media="screen" type="text/css" />
+    
+    <script type="text/javascript">
+        Array.prototype.remove = function(val) {
+            var index = this.indexOf(val);
+            if (index > -1) {
+            this.splice(index, 1);
+            }
+        };
+    </script>
+    <style type="text/css">  
 
-  </div>
-</div> 
+        .dropdown-submenu {  
+            position: relative;  
+        }  
+        .dropdown-submenu > .dropdown-menu {  
+            top: 0;  
+            left: 100%;  
+            margin-top: -6px;  
+            margin-left: -1px;  
+            -webkit-border-radius: 0 6px 6px 6px;  
+            -moz-border-radius: 0 6px 6px;  
+            border-radius: 0 6px 6px 6px;  
+        }  
+        .dropdown-submenu:hover > .dropdown-menu {  
+            display: block;  
+        }  
+        .dropdown-submenu > a:after {  
+            display: block;  
+            content: " ";  
+            float: right;  
+            width: 0;  
+            height: 0;  
+            border-color: transparent;  
+            border-style: solid;  
+            border-width: 5px 0 5px 5px;  
+            border-left-color: #ccc;  
+            margin-top: 5px;  
+            margin-right: -10px;  
+        }  
+        .dropdown-submenu:hover > a:after {  
+            border-left-color: #fff;  
+        }  
+        .dropdown-submenu.pull-left {  
+            float: none;  
+        }  
+        .dropdown-submenu.pull-left > .dropdown-menu {  
+            left: -100%;  
+            margin-left: 10px;  
+            -webkit-border-radius: 6px 0 6px 6px;  
+            -moz-border-radius: 6px 0 6px 6px;  
+            border-radius: 6px 0 6px 6px;  
+        }  
 
-<nav class="main-menu"> 
-      <div class="logo"></div>
-      <div class="settings"></div>
+        .navbar-default .navbar-nav>li>a, .navbar-default .navbar-text .top-class {
+                color: #ffffff;
+        }
+       .navbar-default .navbar-nav>li>a:focus, .navbar-default .navbar-nav>li>a:hover{
+        color: #337ab7;
+        background-color:#ffffff;
+       }
 
+    </style> 
+</head>
+<body  > 
+<!-- bootstrap 导航栏-->
+<div class=" container-fluid header">
+    <div class="row">
+        <div class="col-md-2 col-sm-2 col-lg-2 navbar-header img-rounder logo-lg"><!-- img-rounder logo-lgs-->
+            <img src="images/cmhaaaa.png">
+        </div>
+        <div class="col-md-10 col-sm-10 col-lg-10">
+            <nav class="navbar navbar-default" role="navigation">
+             <div class="container-fluid">
+                 <div class="row">
+                        <ul class="nav navbar-nav">
+                            <li >
+                                <a href="#" class="top-class cs-home" >
+                                    <span >
+                                        Dashboards
+                                    </span>
+                                </a>
+                            </li>
+                            <li class="dropdown">
+                                 <a href="#" class="top-class dropdown-toggle Host_status" data-toggle="dropdown">
+                                    <span >
+                                    RealTime Status
+                                    </span>
+                                    <b class="caret"></b>
+                                 </a>
+                                 <ul id="realtime-menu" class="dropdown-menu"></ul>
+                            </li>
+                            <li class="dropdown">
+                                 <a href="#" class="top-class dropdown-toggle" data-toggle="dropdown">
+                                    <span >
+                                    Graph
+                                    </span>
+                                    <b class="caret"></b>
+                                 </a>
+                                 <ul id="hostgraph-menu" class="dropdown-menu"></ul>
+                            </li>
+                        </ul>
+                 </div>
+             </div>
+            </nav>
+        </div>
+    </div>
+</div>
+<!-- content-->
+<div class="container-fluid">
+    <div id="grid-graph" class="row">
+        <div class="col-md-2 col-sm-2 col-lg-2 left-sidebar">
             <ul id="parentUl">
-                <li>
-                    <a  href="#" id="Home"  >
-            		<i class="fa fa-archive fa-lg"></i>
-            		<span class="nav-text">CS</span>
-                    </a>
-                </li>
-                
-               
             </ul>
- 
- 	  
-            
-</nav>
-<div id="content"></div>
- 
-<script type="text/javascript" src="js/dict.js"></script>
-<script type="text/javascript"  src="js/index.js"></script>
-<script type="text/javascript"  src="js/index_dict.js"></script>
-
+        </div>
+        <div id="content" class="col-md-10 col-sm-10 col-lg-10 ">
+        </div>
+    </div>
+</div>
+<!--footer -->
+<div class="footer"></div>
+<script type="text/javascript"  src="js/lib/jquery.js"></script>
+<script type="text/javascript" src="js/lib/bootstrap.js"></script>
+<script src="js/lib/jquery-accordion-menu.js" type="text/javascript"></script>
+<script type="text/javascript" src="js/commons/dict.js"></script>
+<script src="js/lib/require2.3.2.min.js" defer async="true" data-main="js/cmha.main"></script>
 </body>
 </html>
 
