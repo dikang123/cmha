@@ -20,23 +20,19 @@ func main() {
 	args := os.Args[1:]
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
-<<<<<<< HEAD
-			fmt.Println("1.1.5-Beta")
-=======
 			fmt.Println("version 1.1.7")
->>>>>>> 126d33b0306a2de4f2f5445489f9e46636c7c67e
 			return
 		} else {
 			return
 		}
 	}
-	address := ReadCaConf()	
+	address := ReadCaConf()
 	//Config is used to configure the creation of a client
-        config := ReturnConsulConfig(address)
+	config := ReturnConsulConfig(address)
 	client, err := consulapi.NewClient(config)
-        if err != nil {
-         	beego.Error("Create a consul-api client failure!", err)
-                return
-        }	
+	if err != nil {
+		beego.Error("Create a consul-api client failure!", err)
+		return
+	}
 	SetConn(client)
 }
