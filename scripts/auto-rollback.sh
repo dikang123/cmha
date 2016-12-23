@@ -1,9 +1,5 @@
 #!/bin/bash
-<<<<<<< HEAD
-###version 1.1.5-Beta
-=======
 ###version 1.1.5-Beta.6
->>>>>>> 126d33b0306a2de4f2f5445489f9e46636c7c67e
 basedir=/usr/local/cmha
 deployment_file="auto-deployment.ini"
 servicename=`awk -F= '/servicename/ {print $2}' $deployment_file`
