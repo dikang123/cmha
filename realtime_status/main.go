@@ -20,7 +20,7 @@ var (
 	DbInfoFlag  = flag.String("dbinfo", "", "usage: the db info")
 	Debug           = flag.Bool("debug", false, "debug model ,write log to std.err")
 )
-var Version = "version 1.1.6"
+var Version = "version 1.1.7"
 
 var seqpath ="/tmp/.realtime_cache/real_status_seq"
 var realtime_cachedirpath = "/tmp/.realtime_cache/"

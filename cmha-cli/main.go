@@ -12,7 +12,7 @@ import (
 
 var (
 	service_ip              []string
-	VERSION                 = "1.1.6"
+	VERSION                 = "version 1.1.7"
 	Prog                    = "CMHA CLI"
 	history_file            = ".cmha-cli.history"
 	max_number_history_line = 300
