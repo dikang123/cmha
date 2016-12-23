@@ -4,9 +4,15 @@
  */
 var configObject = new Object({
     IP :"192.168.200.135:8500",//主机IP
+<<<<<<< HEAD
     FreshenTime : 5e3,  //首页刷新时间
     graphFreshenTime :6e4, //graph刷新时间
     graphAllTime : 24,    //graph总共时间
+=======
+    FreshenTime : 5e3,  //首页刷新时间ms
+    graphFreshenTime :6e4, //graph刷新时间ms
+    graphAllTime : 24,    //graph总共时间h
+>>>>>>> 228e7f9e1916a71f7393da1e52adce215fb51100
 });
 
 var globalObject=new Object({
@@ -99,4 +105,8 @@ function Init(){
    
 }
     
+<<<<<<< HEAD
    
+=======
+   
+>>>>>>> 228e7f9e1916a71f7393da1e52adce215fb51100
