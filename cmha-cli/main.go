@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/upmio/cmha-cli/cliconfig"
-	"github.com/0-T-0/go.linenoise"
 	"os"
 	"strings"
 	"unsafe"
+
+	"github.com/0-T-0/go.linenoise"
+	"github.com/upmio/cmha-cli/cliconfig"
 )
 
 var (
@@ -63,8 +64,6 @@ func main() {
 		if arg == "-v" || arg == "--version" {
 			fmt.Println("version", VERSION)
 			return
-		} else {
-			return
 		}
 	}
 
@@ -95,7 +94,7 @@ func main() {
 	for {
 
 		cmdline = ""
-		
+
 		if str, end := linenoise.Scan(renderprompt(service_name)); end {
 
 			fmt.Printf("Unexpected error\n")
@@ -210,7 +209,6 @@ func main() {
 					continue
 				}
 
-
 				if len(fields) <= 2 {
 
 					help("show", fields[1])
@@ -238,7 +236,6 @@ func main() {
 					continue
 				}
 
-
 				if len(fields) <= 2 {
 					help("show", fields[1])
 					continue
@@ -264,9 +261,9 @@ func main() {
 					fmt.Printf("Must to be use a service. Before use command '%s' .\n", "show info")
 					help("use")
 					continue
-				}else if service_name == "CS" {
-					help("show")	
-				}else{
+				} else if service_name == "CS" {
+					help("show")
+				} else {
 					Service_Status(service_name)
 				}
 
@@ -291,7 +288,7 @@ func main() {
 					if _nodes_data, err := get_Nodes_Info(service_name); err != nil {
 						fmt.Printf("%s\n", err.Error())
 					} else {
-	
+
 						for i, _ := range _nodes_data {
 							for j, v := range _nodes_data[i] {
 								nodes_data[i][j] = v
@@ -305,7 +302,7 @@ func main() {
 					help("use")
 					continue
 				}
-			}else{
+			} else {
 				service_name = fields[1]
 				fmt.Printf("Service has changed to %s\n", ColorRender(service_name, COLOR_SUM))
 				continue
@@ -318,19 +315,19 @@ func main() {
 				help("use")
 				continue
 			}
-			if len(fields) == 1{
-                        	help(fields[0])
-                                continue
+			if len(fields) == 1 {
+				help(fields[0])
+				continue
 
 			}
-			if fields[1] == "alerts"{
+			if fields[1] == "alerts" {
 				if len(fields) < 3 {
 
 					help(fields[0])
 					continue
 
 				}
-			}else{
+			} else {
 				if len(fields) < 4 {
 
 					help(fields[0])
@@ -347,9 +344,9 @@ func main() {
 			} else if fields[1] == "monitorlog" {
 
 				logtype = LOG_MONITOR
-			}else if fields[1] == "alerts" {
+			} else if fields[1] == "alerts" {
 				logtype = LOG_ALERT
-			}else {
+			} else {
 				help(fields[0])
 				continue
 			}
@@ -357,45 +354,45 @@ func main() {
 			var node_name string
 			if logtype == LOG_ALERT {
 				_timestamps = fields[2:]
-			}else{
+			} else {
 				node_name = fields[2]
 
 				_timestamps = fields[3:]
 			}
 
 			if _timestamps[0] == "all" {
-				
-				if logtype == LOG_ALERT{
-					if err := PurgeAlertLog(service_name,logtype); err != nil {
+
+				if logtype == LOG_ALERT {
+					if err := PurgeAlertLog(service_name, logtype); err != nil {
 						fmt.Printf("\n%s\n", err.Error())
-                                                help(fields[0])
-                                                continue
+						help(fields[0])
+						continue
 					}
 
-				}else{
+				} else {
 					if err := PurgeLog(service_name, node_name, logtype); err != nil {
 
 						fmt.Printf("\n%s\n", err.Error())
 						help(fields[0])
 						continue
-					}	
+					}
 				}
 
 			} else {
-				if logtype == LOG_ALERT{
+				if logtype == LOG_ALERT {
 					if len(_timestamps[0]) == 39 {
-						if err := PurgeAlertLog(service_name,logtype,_timestamps...); err != nil {
-                                                	fmt.Printf("\n%s\n", err.Error())
-                                                	help(fields[0])
-                                                	continue
-                                        	}
-					}else{
-                                                help(fields[0])
-                                                continue
+						if err := PurgeAlertLog(service_name, logtype, _timestamps...); err != nil {
+							fmt.Printf("\n%s\n", err.Error())
+							help(fields[0])
+							continue
+						}
+					} else {
+						help(fields[0])
+						continue
 					}
-				}else{
+				} else {
 					if err := PurgeLog(service_name, node_name, logtype, _timestamps...); err != nil {
-	
+
 						fmt.Printf("\n%s\n", err.Error())
 						help(fields[0])
 						continue
@@ -409,9 +406,9 @@ func main() {
 				fmt.Printf("Must to be use a service. Before use command '%s' .\n", fields[0])
 				help("use")
 				continue
-			}else if len(fields) < 3{
+			} else if len(fields) < 3 {
 				help("set")
-			}else{
+			} else {
 				setCMD(fields[1:], service_name)
 			}
 		default:
@@ -444,19 +441,19 @@ func helpCMD(args []string) {
 
 func setCMD(args []string, service_name string) {
 	if service_name == "CS" {
-		if len(args) == 2{
-			switch args[0]{
+		if len(args) == 2 {
+			switch args[0] {
 			case "alert_boot":
-                        	if args[1] == "on" || args[1] == "off" {
-                               		Setmonitorkv(service_name, "alert", args[1])
-                        	} else {
-                                	fmt.Println("Parameter error,eg:set alert on/off")
-                        	}
+				if args[1] == "on" || args[1] == "off" {
+					Setmonitorkv(service_name, "alert", args[1])
+				} else {
+					fmt.Println("Parameter error,eg:set alert on/off")
+				}
 			default:
-                        	sayUnrecognized()
-			}		
+				sayUnrecognized()
+			}
 		}
-	}else{
+	} else {
 
 		if len(args) == 1 {
 			switch args[0] {
@@ -474,11 +471,11 @@ func setCMD(args []string, service_name string) {
 		} else if len(args) == 2 {
 			switch args[0] {
 			case "repl_err_counter":
-	
+
 				_nodename := args[1]
 				if is_valid_node(_nodename) {
 					Setmonitorkv(_nodename, service_name, "repl")
-	
+
 				} else {
 					say_invalid_node(_nodename)
 				}
@@ -488,7 +485,7 @@ func setCMD(args []string, service_name string) {
 				} else {
 					fmt.Println("Parameter error,eg:set alert on/off")
 				}
-	
+
 			case "vsr":
 				fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
 			case "read_only":
@@ -497,36 +494,36 @@ func setCMD(args []string, service_name string) {
 				fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
 			case "slave_stop":
 				fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
-	
+
 			default:
 				sayUnrecognized()
 			}
 		} else if len(args) == 3 {
 			switch args[0] {
 			case "slave_start":
-	
+
 				_ip := args[1]
 				_port := args[2]
 				if is_valid_node(_ip, _port) {
-	
+
 					SetSlaveStart(_ip, _port)
-	
+
 				} else {
 					say_invalid_node(_ip, _port)
 				}
-	
+
 			case "slave_stop":
-	
+
 				_ip := args[1]
 				_port := args[2]
 				if is_valid_node(_ip, _port) {
-	
+
 					SetSlaveStop(_ip, _port)
-	
+
 				} else {
 					say_invalid_node(_ip, _port)
 				}
-	
+
 			case "vsr":
 				fmt.Println("Parameter error,eg:set vsr 192.168.2.1 3306 on")
 			case "read_only":
@@ -535,46 +532,46 @@ func setCMD(args []string, service_name string) {
 				sayUnrecognized()
 			}
 		} else if len(args) == 4 {
-	
+
 			switch args[0] {
 			case "vsr":
 
 				_ip := args[1]
 				_port := args[2]
 				if is_valid_node(_ip, _port) {
-	
+
 					SetVsr(_ip, _port, args[3])
-	
+
 				} else {
 					say_invalid_node(_ip, _port)
 				}
-	
+
 			case "read_only":
-	
+
 				_ip := args[1]
 				_port := args[2]
 				if is_valid_node(_ip, _port) {
-	
+
 					SetReadOnly(_ip, _port, args[3])
-	
+
 				} else {
 					say_invalid_node(_ip, _port)
 				}
-	
+
 			case "slave_start":
 				fmt.Println("Parameter error,eg:set slave_start 192.168.2.1 3306")
 			case "slave_stop":
 				fmt.Println("Parameter error,eg:set slave_stop 192.168.2.1 3306")
 			default:
 				sayUnrecognized()
-	
+
 			}
-	
+
 		} else {
 			fmt.Println("Missing Parameters")
 			help("set")
 		}
-	}	
+	}
 }
 
 func say_invalid_node(_nodedata ...string) {
