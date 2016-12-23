@@ -26,8 +26,6 @@ func main() {
 		if arg == "-v" || arg == "--version" {
 			fmt.Println("version 1.1.7")
 			return
-		} else {
-			return
 		}
 	}
 	CheckService()

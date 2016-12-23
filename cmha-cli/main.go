@@ -64,8 +64,6 @@ func main() {
 		if arg == "-v" || arg == "--version" {
 			fmt.Println("version", VERSION)
 			return
-		} else {
-			return
 		}
 	}
 

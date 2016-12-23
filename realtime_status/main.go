@@ -17,12 +17,12 @@ import (
 var (
 	ServiceNameFlag = flag.String("servicename", "", " usage: the a group service name")
 	SysInfoFlag     = flag.String("sysinfo", "", "usage: the a sys info")
-	DbInfoFlag  = flag.String("dbinfo", "", "usage: the db info")
+	DbInfoFlag      = flag.String("dbinfo", "", "usage: the db info")
 	Debug           = flag.Bool("debug", false, "debug model ,write log to std.err")
 )
 var Version = "version 1.1.7"
 
-var seqpath ="/tmp/.realtime_cache/real_status_seq"
+var seqpath = "/tmp/.realtime_cache/real_status_seq"
 var realtime_cachedirpath = "/tmp/.realtime_cache/"
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	for _, arg := range args {
 		if arg == "-v" || arg == "--version" {
 			fmt.Println(Version)
-			os.Exit(0)
+			return
 		}
 	}
 	flag.Parse()
@@ -39,15 +39,15 @@ func main() {
 	}
 	realtimedir, err := file.PathExists(realtime_cachedirpath)
 	if err != nil {
-		fmt.Println("check dir exists failed!",err)
+		fmt.Println("check dir exists failed!", err)
 		os.Exit(2)
 	}
 	if !realtimedir {
 		err := os.MkdirAll(realtime_cachedirpath, 0777)
-    		if err != nil {
-        		fmt.Printf("dir create filed!", err)
+		if err != nil {
+			fmt.Printf("dir create filed!", err)
 			os.Exit(2)
-    		}
+		}
 	}
 	_, C_time_data := time.GetNowTime()
 	save_counter, _ := beego.AppConfig.Int("save_counter")
@@ -82,7 +82,7 @@ func main() {
 			info.CpuLoad()
 			info.GetSysInfo()
 			info.GetMysql(user, password, port)
-			info.InsertDataToCs(*ServiceNameFlag, hostname, newid, old_id, C_time_data,"sys_and_db")
+			info.InsertDataToCs(*ServiceNameFlag, hostname, newid, old_id, C_time_data, "sys_and_db")
 		} else {
 			os.Exit(0)
 		}
@@ -91,7 +91,7 @@ func main() {
 			info.InitFirstSysinfo()
 			info.CpuLoad()
 			info.GetSysInfo()
-			info.InsertDataToCs(*ServiceNameFlag, hostname, newid, old_id, C_time_data,"sys")
+			info.InsertDataToCs(*ServiceNameFlag, hostname, newid, old_id, C_time_data, "sys")
 		}
 	} else {
 		os.Exit(0)
