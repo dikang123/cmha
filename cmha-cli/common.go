@@ -74,14 +74,17 @@ func ServiceData(_ip string, _port string, _sql string, filters ...string) (map[
 	_user := cliconfig.GetUserName()
 	_password := cliconfig.GetPassword()
 
-	_dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/", _user, _password, _ip, _port)
+	_dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8&timeout=3s", _user, _password, _ip, _port)
 
 	_db, err := sql.Open("mysql", _dsn)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	defer _db.Close()
-
+	err = _db.Ping()
+        if err != nil {
+		return nil,err	
+        }
 	_rows, err := _db.Query(_sql)
 	if err != nil {
 		return nil, err
@@ -171,13 +174,17 @@ func SlaveStatus(_ip string, _port string, _sql string, columns ...string) (map[
 	_user := cliconfig.GetUserName()
 	_password := cliconfig.GetPassword()
 
-	_dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/", _user, _password, _ip, _port)
+	_dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8&timeout=3s", _user, _password, _ip, _port)
 
 	_db, err := sql.Open("mysql", _dsn)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	defer _db.Close()
+	err = _db.Ping()
+	if err != nil {
+		return nil,err
+	}
 
 	_rows, err := _db.Query(_sql)
 	if err != nil {

@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/upmio/cmha-cli/cliconfig"
 	"strings"
+
+	"github.com/upmio/cmha-cli/cliconfig"
 )
 
 func Service_Status(args ...string) error {
@@ -31,7 +32,6 @@ func Service_Status(args ...string) error {
 		serviceleader := strings.Split(string(kp.Value), " ")
 
 		leaderip = strings.Split(serviceleader[2], ":")[0]
-
 
 	}
 
@@ -110,43 +110,62 @@ func Service_Status(args ...string) error {
 				if node_checkid == "serfHealth" {
 					chap_node_info[5] = node_status
 				} else {
-					chap_node_info[4] = node_status
+					if chap_node_info[5] == ColorRender("Fail", COLOR_ERROR){
+						chap_node_info[4] = ColorRender("UnKnown", COLOR_WARNNING)
+					}else{
+						chap_node_info[4] = node_status
+					}
 				}
 				//add role
-				role_key := "cmha/service/"+args[0]+"/chap/role/" +node_name
+				role_key := "cmha/service/" + args[0] + "/chap/role/" + node_name
 				if node_status == ColorRender("OK", COLOR_NORMAL) {
-					kp, _, err:= kv.Get(role_key, nil)
+					kp, _, err := kv.Get(role_key, nil)
 					if err != nil {
-						 fmt.Printf("%s\n", err)
+						fmt.Printf("%s\n", err)
 					}
 					if kp.Value != nil {
 						chap_node_info[6] = string(kp.Value)
-					}else{
+					} else {
 						chap_node_info[6] = ColorRender("UnKnown", COLOR_WARNNING)
 					}
-				} else {
+				}else{
 					chap_node_info[6] = ColorRender("UnKnown", COLOR_WARNNING)
+				}
+				if chap_node_info[5] == ColorRender("Fail", COLOR_ERROR){
+                                        chap_node_info[6] = ColorRender("UnKnown", COLOR_WARNNING)
+                                }else{
+					kp, _, err := kv.Get(role_key, nil)
+                                        if err != nil {
+                                                fmt.Printf("%s\n", err)
+                                        }
+                                        if kp.Value != nil {
+                                                chap_node_info[6] = string(kp.Value)
+                                        } else {
+                                                chap_node_info[6] = ColorRender("UnKnown", COLOR_WARNNING)
+                                        }
 				}
 				//add vip
 				if chap_node_info[6] == "master" {
-					kp, _, err:= kv.Get("cmha/service/"+args[0]+"/chap/VIP", nil)
+					kp, _, err := kv.Get("cmha/service/"+args[0]+"/chap/VIP", nil)
 					if err != nil {
-						 fmt.Printf("%s\n", err)
+						fmt.Printf("%s\n", err)
 					}
 					if kp.Value != nil {
-						chap_node_info[7] = string(kp.Value) +node_port
-					}else{
+						chap_node_info[7] = string(kp.Value) + node_port
+					} else {
 						chap_node_info[7] = ColorRender("UnKnown", COLOR_WARNNING)
 					}
-				}else{
+                                }else {
 					chap_node_info[7] = ""
 				}
+				if chap_node_info[5] == ColorRender("Fail", COLOR_ERROR){
+                                        chap_node_info[7] = ""
+                                }
 			}
 
 			if has_unknown_status {
 				chap_node_info[4] = ColorRender("UnKnown", COLOR_WARNNING)
 			}
-
 
 			_data_chap = append(_data_chap, chap_node_info)
 
@@ -159,11 +178,6 @@ func Service_Status(args ...string) error {
 			db_node_info[3] = node_is_leader
 			db_node_info[4] = node_type
 
-			//Get Data From DB
-			data_from_db, err := ArrangeServiceData(_node_address, fmt.Sprint(_node_port))
-			if err != nil {
-				fmt.Printf("%s\n", err)
-			}
 
 			has_unknown_status := false
 
@@ -187,13 +201,24 @@ func Service_Status(args ...string) error {
 				if node_checkid == "serfHealth" {
 					db_node_info[6] = node_status
 				} else {
-					db_node_info[5] = node_status
+					if db_node_info[6] == ColorRender("Fail", COLOR_ERROR){
+                                                db_node_info[5] = ColorRender("UnKnown", COLOR_WARNNING)
+                                                
+                                        }else{
+						db_node_info[5] = node_status
+					}
 				}
 
 			}
 
 			if has_unknown_status {
 				db_node_info[5] = ColorRender("UnKnown", COLOR_WARNNING)
+			}
+
+			//Get Data From DB
+			data_from_db, err := ArrangeServiceData(_node_address, fmt.Sprint(_node_port),db_node_info[6])
+			if err != nil {
+				fmt.Printf("%s\n", err)
 			}
 
 			// repl_err_count
@@ -246,21 +271,22 @@ func Service_Status(args ...string) error {
 	return nil
 }
 
-func ArrangeServiceData(_ip string, _port string) ([]string, error) {
+func ArrangeServiceData(_ip string, _port string,agentstatus string) ([]string, error) {
 	// Data from DB
-
 	_sql_DB_Variables := "show variables"
 
+	var ret_err_string string = ""
 	_filter1 := "read_only"
 	_filter2 := "rpl_semi_sync_master_trysyncrepl"
 	_filter3 := "rpl_semi_sync_master_keepsyncrepl"
 
 	_sql_Slave_Status := "show slave status"
-
+	var count int
 	// filter for slave status
 	_filter4 := "Slave_IO_Running"
 	_filter5 := "Slave_SQL_Running"
-
+	var _slave_status map[string]string
+	var err_get_slave_status error
 	_service_data, err_get_service_data :=
 		ServiceData(_ip,
 			_port,
@@ -268,27 +294,25 @@ func ArrangeServiceData(_ip string, _port string) ([]string, error) {
 			_filter1,
 			_filter2,
 			_filter3)
+	
+	if err_get_service_data != nil {
+		count +=1
+		ret_err_string += err_get_service_data.Error()
 
-	_slave_status, err_get_slave_status :=
+	}else{
+		_slave_status, err_get_slave_status =
 		SlaveStatus(_ip,
 			_port,
 			_sql_Slave_Status,
 			_filter4,
 			_filter5)
 
-	var ret_err_string string = ""
-	if err_get_service_data != nil {
+		if err_get_slave_status != nil {
 
-		ret_err_string += err_get_service_data.Error()
+			ret_err_string += err_get_slave_status.Error()
 
+		}
 	}
-
-	if err_get_slave_status != nil {
-
-		ret_err_string += err_get_slave_status.Error()
-
-	}
-
 	var ret_err error = nil
 	if ret_err_string != "" {
 		ret_err = errors.New(ret_err_string)
@@ -338,7 +362,6 @@ func ArrangeServiceData(_ip string, _port string) ([]string, error) {
 
 		_status_io = _rt_status
 
-
 		switch _status_sql {
 		case "Yes":
 			_rt_status = ColorRender("Yes", COLOR_NORMAL)
@@ -353,7 +376,9 @@ func ArrangeServiceData(_ip string, _port string) ([]string, error) {
 		_repl_status = fmt.Sprintf("IO:%s;SQL:%s", _status_io, _status_sql)
 
 	}
-
+	if count != 0 {
+		_repl_status = ColorRender("UnKnown", COLOR_WARNNING)
+	}
 	_ret_data := []string{_rw, _vsr, _repl_status}
 
 	return _ret_data, ret_err
@@ -364,7 +389,7 @@ func getReplErrCount(_node_name, servicename string) (string, error) {
 
 	var repl_err_count string = ""
 
-	_key_repl_err_counter := "cmha/service/" + servicename + "/db/repl_err_counter/"+_node_name
+	_key_repl_err_counter := "cmha/service/" + servicename + "/db/repl_err_counter/" + _node_name
 
 	_client, err := cliconfig.Consul_Client_Init()
 

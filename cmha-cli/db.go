@@ -62,7 +62,7 @@ func Db(args ...string) error {
 						password +
 						"@tcp(" + healthservice[index].Node.Address + ":" +
 						strconv.Itoa(healthservice[index].Service.Port) +
-						")/"
+						")/" + "?timeout=3"
 
 					db, err := sql.Open("mysql", dsName)
 
