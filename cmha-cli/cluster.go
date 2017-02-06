@@ -129,6 +129,9 @@ func Cluster(args ...string) error {
 					node_info[5] = node_status
 				} else {
 					node_info[4] = node_status
+					if node_info[5] == ColorRender("Fail", COLOR_ERROR){
+						node_info[4] = ColorRender("UnKnown", COLOR_WARNNING)
+					}
 				}
 
 			}
